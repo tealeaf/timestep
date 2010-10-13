@@ -1,0 +1,149 @@
+jsio('from ..canvas import BufferedCanvas');
+jsio('import ..device');
+jsio('import std.uri');
+
+Image = Class(function() {
+	this.init = function() {
+		this._src = "";
+		this.__defineSetter__('src', function(value) {
+			if (!value) {
+				logger.error('empty src set on an image!');
+				return;
+			}
+			
+			value = String(std.uri.relativeTo(value, jsio.__env.getCwd()));
+			
+			this._src = value;
+			this.onload();
+			logger.log('IMAGE: ' + value);
+		});
+		
+		this.__defineGetter__('src', function() { return this._src; });
+	}
+});
+
+var canvasSingleton = null;
+
+function getter(name) {
+	return (function() {
+		return this._ctx[name];
+	});
+}
+
+function setter(name) {
+	return (function(val) {
+		this._ctxShim[name] = val;
+		this._buffer.push(['set', [name, val]]);//'set', name, val);
+	});
+}
+
+function wrap(name) {
+	return (function() {
+		this._buffer.push([name, arguments]);
+	})
+}
+
+
+exports = Class(BufferedCanvas, function(supr) {
+	this._ctx = {}; // for legacy getters and setters
+	
+	this.show = function() {
+		// TODO: NATIVE.gl.show();
+	}
+	
+	this.hide = function() {
+		// TODO: NATIVE.gl.hide();
+	}
+	
+	this.execSwap = function(operations) {}
+	
+	this.save = NATIVE.gl.push;
+	this.restore = NATIVE.gl.pop;
+	
+	this.drawImage = function(img, x, y, w, h, dx, dy, dw, dh) {
+		NATIVE.gl.drawImage(img.src, x, y, w, h, dx, dy, dw, dh);
+	}
+	
+	this.translate = NATIVE.gl.translate;
+	this.rotate = function(r) {
+		NATIVE.gl.rotate(r, 0, 0, 1);
+	}
+	this.scale = NATIVE.gl.scale;
+	
+});
+
+/*
+exports.BufferedCanvas = Class(function() {
+	
+	this.init = function(opts) {
+		this._opts = opts = opts || {}
+		opts.width = opts.width || 480;
+		opts.height = opts.height || 320;
+		this._buffer = [];
+		this._ctxShim = {};
+	}
+	
+	this.swap = function() {
+		var ops = this._buffer;
+		this._buffer = [];
+		this.execSwap(ops);
+	}
+	
+	this.reset = function() {
+		this._buffer = [];
+	}
+	
+	this.show = this.hide = function() { throw 'abstract'; }
+
+	this.drawImage = wrap('drawImage');
+	this.putImageData = wrap('putImageData');
+	
+	this.fillRect = wrap('fillRect');
+	this.fillCircle = function(x, y, radius, fillStyle) {
+		this._buffer.push(['beginPath']);
+		this._buffer.push(['arc', [x, y, radius, 0, 2 * Math.PI, true]]);
+		this._buffer.push(['fill']);
+	}
+	
+	this.setGlobalAlpha = setter('globalAlpha');
+	this.getGlobalAlpha = getter('globalAlpha');
+	
+	this.setFillStyle = setter('fillStyle');
+	this.getFillStyle = getter('fillStyle');
+
+	this.setStrokeStyle = setter('strokeStyle');
+	this.getStrokeStyle = getter('strokeStyle');
+
+	this.setLineWidth = setter('lineWidth');
+	this.getLineWidth = getter('lineWidth');
+	
+	
+	this.setFont = setter('font');
+	this.getFont = getter('font');
+	this.setTextAlign = setter('textAlign');
+	this.getTextAlign = getter('textAlign');
+	this.setTextBaseline = setter('textBaseLine');
+	this.getTextBaseline = getter('textBaseLine');
+	
+	this.fillText = wrap('fillText');
+	this.measureText = wrap('measureText');
+	this.strokeText = wrap('strokeText');
+	this.beginPath = wrap('beginPath');
+	this.moveTo = wrap('moveTo');
+	this.closePath = wrap('closePath');
+	this.lineTo = wrap('lineTo');
+
+	this.rect = wrap('rect');
+	this.fillRect = wrap('fillRect');
+	this.strokeRect = wrap('strokeRect');
+
+	this.save = wrap('save');
+	this.restore = wrap('restore');
+	
+	this.clip = wrap('clip');
+	this.stroke = wrap('stroke');
+	this.fill = wrap('fill');
+	
+	
+});
+*/
