@@ -23,8 +23,6 @@ exports = Class(View, function(supr) {
 		
 	}
 	
-	this.getOFfset 
-	
 	this.getOffsetX = function() {
 		return this._offsetX;
 	}

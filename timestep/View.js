@@ -493,7 +493,8 @@ var View = exports = Class(lib.PubSub, function() {
 			r = 0,
 			s = this.style,
 			w = s.width,
-			h = s.height;
+			h = s.height,
+			c = 1;
 		
 		while(view) {
 			var scale = view.style.scale;
@@ -501,6 +502,7 @@ var View = exports = Class(lib.PubSub, function() {
 			r += view.style.r;
 			w *= scale;
 			h *= scale;
+			c *= scale;
 			view = view._superView;
 		}
 		
@@ -509,7 +511,8 @@ var View = exports = Class(lib.PubSub, function() {
 			y: abs.y,
 			r: r % (2 * Math.PI),
 			width: w,
-			height: h
+			height: h,
+			scale: c
 		};
 	}
 	

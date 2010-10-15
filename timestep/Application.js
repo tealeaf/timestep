@@ -107,6 +107,7 @@ var Application = exports = Class(PubSub, function(supr) {
 	}
 	
 	this.render = function(dt) {
+		this._canvas.clear();
 		this._view.wrapRender(this._canvas, dt);
 		if (dt != undefined && this._opts.showFPS) {
 			this._drawFPS(dt);

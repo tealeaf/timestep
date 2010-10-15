@@ -17,31 +17,45 @@ exports = Class(BufferedCanvas, function(supr) {
 	this.init = function() {
 		supr(this, 'init', arguments);
 		
-		var canvas = this._canvas = document.createElement('canvas');
-		canvas.style.cssText = 'position: absolute; top: 0px; left: 0px; z-index: 1';
+		var el = document.createElement('canvas');
+		el.style.cssText = 'position: absolute; top: 0px; left: 0px; z-index: 1';
 		
-		this._canvas.width = this._opts.width;
-		this._canvas.height = this._opts.height;
+		el.width = this._opts.width;
+		el.height = this._opts.height;
 		
-		
-		var ctx = this._canvas.getContext('2d');
+		var ctx = el.getContext('2d');
+		ctx.el = el;
 		ctx.show = function() {
-			Document.getContainer().appendChild(canvas);
+			Document.getContainer().appendChild(el);
 		};
 		
 		ctx.hide = function() {
-			if (canvas.parentNode) {
-				canvas.parentNode.removeChild(canvas);
+			if (el.parentNode) {
+				el.parentNode.removeChild(el);
 			}
+		};
+		
+		ctx.clear = function() {
+			this.clearRect(0, 0, el.width, el.height);
 		};
 		
 		ctx.swap = function() {};
 		ctx.execSwap = function() {};
 		
-		ctx.fillCircle = function(x, y, radius, fillStyle) {
+		ctx.strokeCircle = function(x, y, radius) {
+			this.beginPath();
+			this.arc(x, y, radius, 0, 2 * Math.PI, true);
+			this.stroke();
+		}
+		
+		ctx.fillCircle = function(x, y, radius) {
 			this.beginPath();
 			this.arc(x, y, radius, 0, 2 * Math.PI, true);
 			this.fill();
+		}
+		
+		ctx.loadIdentity = function() {
+			this.setTransform(1, 0, 0, 1, 0, 0);
 		}
 		
 		ctx.setGlobalAlpha = setter('globalAlpha');
@@ -74,23 +88,4 @@ exports = Class(BufferedCanvas, function(supr) {
 
 		return ctx;
 	}
-	
-	this.execSwap = function(operations) {
-		this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
-		for (var i = 0, op; op = operations[i]; ++i) {
-			var name = op[0];
-			var args = op[1];
-			if (name == 'set') {
-				this._ctx[args[0]] = args[1];
-			} else {
-				try {
-					this._ctx[name].apply(this._ctx, args);
-				} 
-				catch(e) {
-					logger.info('error on', name, args);
-//					throw e;
-				}
-			}
-		}
-	}
-})
+});

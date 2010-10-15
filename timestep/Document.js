@@ -1,7 +1,14 @@
-jsio('import .device');
-jsio('from util.browser import $');
+"use import";
+
+import lib.Enum as Enum;
+from util.browser import $;
+
+import .device;
+import .canvas;
 
 var container = null;
+
+var SCALING = exports.SCALING = Enum('FIXED', 'RESIZE');
 
 // bgColor == webpage background
 // appColor == <canvas> background
@@ -16,10 +23,38 @@ exports.init = function(bgColor, appColor) {
 		$.onEvent(window, 'resize', this, 'onResize');
 		this.onResize();
 	}
+
+	this.setScalingMode(SCALING.FIXED);
+}
+
+exports.setScalingMode = function(scalingMode) {
+	this.scalingMode = scalingMode;
+	this.onResize();
+}
+
+exports.resetStyle = function() {
+	
 }
 	
-this.onResize = function() {
-	container.style.marginTop = Math.max(0, (document.documentElement || document).clientHeight - device.height - 10) / 2 + 'px';
+exports.onResize = function() {
+	if (!container) { return; }
+	
+	var w = (document.documentElement || document).clientWidth,
+		h = (document.documentElement || document).clientHeight;
+	
+	if (this.scalingMode == SCALING.FIXED) {
+		container.style.marginTop = Math.max(0, h - device.height - 10) / 2 + 'px';
+	} else {
+		device.width = w;
+		device.height = h;
+		
+		container.style.width = w + 'px';
+		container.style.height = h + 'px';
+		
+		var c = canvas.getCanvas();
+		c.el.width = w;
+		c.el.height = h;
+	}
 }
 
 exports.getContainer = function() { return container || document && document.body || null; }
