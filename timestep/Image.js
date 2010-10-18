@@ -64,12 +64,16 @@ exports = Class(function() {
 	this.doOnLoad = function() { this._cb.forward(arguments); return this; }
 	
 	// internal onload handler for actual Image object
-	this._onLoad = function(success) {
-		if (!success) {
+	this._onLoad = function(stat) {
+		
+		// _onLoad is a chained callback, so each result set is an index in stat
+		if (stat[0][0] == false) {
 			// TODO: something better?
 			logger.error('Image failed to load:', this._url)
 			return;
 		}
+		
+		if (this._sourceImage.width == 0) { alert(0); debugger; }
 		
 		this._isReady = true;
 		if (this._sourceW == -1) { this._sourceW = this._sourceImage.width; }
