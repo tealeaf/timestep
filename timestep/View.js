@@ -167,7 +167,7 @@ var View = exports = Class(lib.PubSub, function() {
 		}
 	}
 	
-	this.shouldHandleEvt = function(pt) {
+	this._shouldHandleEvt = function(pt) {
 		// top-view(s) capture all
 		if (!this._superView) { return true; }
 		
@@ -199,132 +199,118 @@ var View = exports = Class(lib.PubSub, function() {
 		return pt;
 	}
 	
-	this.onInputOver = function() {
+	this._onInputOver = function() {
 		if (this._isInputOver) { return; }
 		this._isInputOver = true;
-		this.publish('InputOver');
+		this.publish('input:over');
 	}
 	
-	this.onInputOut = function() {
+	this._onInputOut = function() {
 		if (!this._isInputOver) { return; }
 		this._isInputOver = false;
-		for (var v = this._subViews, i = v.length - 1; i >= 0; --i) {
-			if (v[i]._isInputOver) {
-				v[i].onInputOut();
-			}
-		}
-		
-		this.publish('InputOut');
+		this.publish('input:out');
 	}
 	
 	this.isInputOver = function() { return this._isInputOver; }
 	
-	this.wrapInputStart = function(pt) {
-		pt = this._translatePt(pt);
-		if (!this._clickable || !this.shouldHandleEvt(pt)) { return false; }
+	this.findTarget = function(evt, pt) {
+		var pt = this._translatePt(pt);
+		if (!this._shouldHandleEvt(pt)) { return false; }
 		pt.scale(1 / this.style.scale);
 		
-		this._inputData.prev = pt;
-		this.onInputOver();
+		if (this._canHandleEvents) {
+			evt.depth++;
+			evt.trace.unshift(this);
+			evt.pt[this.uid] = pt;
+		}
 		
 		for (var v = this._subViews, i = v.length - 1; i >= 0; --i) {
-			if (v[i].wrapInputStart(pt)) { return true; }
+			if (v[i].findTarget(evt, pt)) {
+				return true;
+			}
 		}
 		
 		if (this._canHandleEvents) {
-			this.inputStart(pt);
-			this.publish('InputStart', pt);
+			evt.target = this;
 			return true;
 		}
 	}
 	
-	this.wrapInputScroll = function(pt, delta) {
-		pt = this._translatePt(pt);
-		if (!this.shouldHandleEvt(pt)) { return false; }
-		pt.scale(1 / this.style.scale);
+	var Event = Class(function() {
+		this.depth = 0;
+		this.target = null;
+		this.cancelled = false;
 		
-		for (var v = this._subViews, i = v.length - 1; i >= 0; --i) {
-			if (v[i].wrapInputScroll(pt, delta)) { return true; }
+		this.init = function(root, type, pt) {
+			this.type = type;
+			this.srcPt = pt;
+			this.root = root;
+			this.pt = {};
+			this.trace = [];
 		}
 		
-		this.publish('InputScroll', pt, delta);
-	}
+		this.cancel = function() {
+			this.cancelled = true;
+		}
+	});
 	
-	this.wrapInputMove = function(pt, queue) {
-		var topWrapper = !queue;
-		if (topWrapper) { queue = []; }
+	this.dispatchEvent = function(evtType, pt) {
+		var evt = new Event(this, evtType, pt);
+		this.findTarget(evt, pt);
+		var depth = evt.depth;
 		
-		pt = this._translatePt(pt);
-		if (!this.shouldHandleEvt(pt)) { this.onInputOut(); return false; }
-		pt.scale(1 / this.style.scale);
+		View._evtHistory[evtType] = evt;
 		
-		this._inputData.prev = pt;
-		queue.push([this, pt]);
-		
-		var target = null;
-		for (var v = this._subViews, i = v.length - 1; i >= 0; --i) {
-			if (target) {
-				v[i].onInputOut();
-			} else if (v[i].wrapInputMove(pt, queue)) {
-				target = true;
-			}
+		for (var i = depth - 1; i >= 0; --i) {
+			var view = evt.trace[i];
+			view.onEventPropagate(evt, evt.pt[view.uid], i == 0);
+			if (evt.cancelled) { return; }
 		}
 		
-		if (topWrapper) {
-			var view, pt;
-			for (var i = 0; view = queue[i]; ++i) {
-				view[0].onInputOver();
+		var cbName = this.getCbName(evtType);
+		for (var i = 0; i < depth; ++i) {
+			var view = evt.trace[i];
+			if (view._canHandleEvents) {
+				var pt = evt.pt[view.uid];
+				if (view[cbName]) { view[cbName](evt, pt, i == 0); }
+				view.publish(evtType, evt, pt, i == 0);
+				if (evt.cancelled) { break; }
 			}
-			
-			while(i-- > 0) {
-				view = queue[i][0];
-				if (view._canHandleEvents) {
-					pt = queue[i][1];
-					view.inputMove(pt);
-					view.publish('InputMove', pt);
-				}
-			}
-		}	
-		
-		return true;
-	}
-	
-	this.wrapInputSelect = function(pt) {
-		pt = this._translatePt(pt);	
-		if (!this._clickable || !this.shouldHandleEvt(pt)) { return false; }
-		pt.scale(1 / this.style.scale);
-		
-		this._inputData.prev = pt;
-		
-		for (var v = this._subViews, i = v.length - 1; i >= 0; --i) {
-			if (v[i].wrapInputSelect(pt)) { return true; }
-		}
-		
-		if (this._canHandleEvents) {
-			this.inputSelect(pt);
-			this.publish('InputSelect', pt);
-			this.click(pt);
-		
-			if (this._opts.trackClicks) {
-				this._clicks.push({
-					x: pt.x,
-					y: pt.y,
-					o: 0.8
-				});
-			}
-			return true;
 		}
 	}
 	
-	this.startDrag = function() {
-		var topView = this;
-		while(topView._superView) { topView = topView._superView; }
-		
-		var pt = new Point(topView._inputData.prev);
-		this._onDragStart = bind(this, 'wrapOnDragStart', topView, pt);
-		this._inputData.startDrag = null;
-		topView.subscribe('InputMove', this, 'wrapOnDrag', topView);
-		topView.subscribe('InputSelect', this, 'wrapOnDragStop', topView);
+	this.getCbName = function(evtType) {
+		return 'on' + (evtType.charAt(0).toUpperCase() + evtType.substring(1)).replace(/:(.)/g, function(a, b) { return b.toUpperCase(); });
+	}
+	
+	this.onEventPropagate = function(evt, pt, atTarget) {
+		if (atTarget) {
+			switch(evt.type) {
+				case 'input:move':
+					// translate input:move events into two higher-level events:
+					//   input:over and input:out
+					
+					// fire input:out events first, start with deepest node and work out
+					if (View._mouseOver && evt.trace[0] != View._mouseOver[0]) {
+						var trace = View._mouseOver;
+						for (var i = 0, view; view = trace[i]; ++i) {
+							if (!(view.uid in evt.pt)) {
+								view._onInputOut();
+							}
+						}
+					}
+					
+					// fire input:over events second, start with outermost node and go to target
+					trace = evt.trace;
+					for (var i = evt.depth - 1; i >= 0; --i) {
+						trace[i]._onInputOver();
+					}
+					
+					// update current mouse trace
+					View._mouseOver = trace;
+					break;
+			}
+		}
 	}
 	
 	this.localizePt = function(pt) {
@@ -348,45 +334,46 @@ var View = exports = Class(lib.PubSub, function() {
 		return list;
 	}
 	
-	this.wrapOnDragStart = function(topView, startPt) {
-		this._inputData.startDrag = startPt;
-		this._inputData.prevDrag = startPt;
-		this.onDragStart(startPt, startPt, new Point());
+	this.startDrag = function() {
+		var inputStartEvt = View._evtHistory['input:start'],
+			root = inputStartEvt.root,
+			dragEvt = new Event(root, 'input:drag', inputStartEvt.srcPt);
+		
+		dragEvt.target = this;
+		
+		root.subscribe('input:move', this, '_onDragStart', dragEvt);
+		root.subscribe('input:move', this, '_onDrag', dragEvt);
+		root.subscribe('input:select', this, '_onDragEnd', dragEvt);
 	}
 	
-	this.wrapOnDrag = function(topView, pt) {
-		if (this._onDragStart) {
-			this._onDragStart();
-			this._onDragStart = null;
-		}
-		this.onDrag(this._inputData.startDrag, pt, Point.subtract(pt, this._inputData.prevDrag));
-		this._inputData.prevDrag = pt;
-	}
+	this._onDragStart = function(dragEvt, moveEvt) {
+		dragEvt.root.unsubscribe('input:move', this, '_onDragStart');
+		dragEvt.currPt = dragEvt.srcPt;
 
-	this.wrapOnDragStop = function(topView, pt) {
-		topView.unsubscribe('InputMove', this, 'wrapOnDrag');
-		topView.unsubscribe('InputSelect', this, 'wrapOnDragStop');
-		if (!this._inputData.startDrag) { return; }
-
-		topView._inputData.didCompleteDrag = true;
-		this.onDragStop(this._inputData.startDrag, pt, Point.subtract(pt, this._inputData.prevDrag));
+		this.publish('drag:start', dragEvt);
+		if (this.onDragStart) { this.onDragStart(dragEvt); }
 	}
 	
-	this.inputStart = function(pt) {}
-	this.inputMove = function(pt) {}
-	this.inputSelect = function(pt) {}
-	
-	// override these callbacks
-	//  - startPt is the location the drag started at
-	//  - currentPt is the current location of the input device
-	//  - delta is a point representing the distance moved by the input device since the last callback
-	this.onDragStart = this.onDrag = this.onDragStop = function(startPt, currentPt, delta) {}
-	
-	this.click = function(pt) {
-		this.publish('Click', pt);
-		// Overridden in subclass
+	this._onDrag = function(dragEvt, moveEvt) {
+		dragEvt.prevPt = dragEvt.currPt;
+		dragEvt.currPt = moveEvt.srcPt;
+		
+		var delta = Point.subtract(dragEvt.currPt, dragEvt.prevPt);
+		this.publish('drag:move', dragEvt, moveEvt, delta);
+		if (this.onDrag) { this.onDrag(dragEvt, moveEvt, delta); }
 	}
 	
+	this._onDragEnd = function(dragEvt, selectEvt) {
+		dragEvt.root.unsubscribe('input:move', this, '_onDrag');
+		dragEvt.root.unsubscribe('input:select', this, '_onDragStop');
+		if (!dragEvt.currPt) { return; }
+		
+		this.publish('drag:stop', dragEvt, selectEvt);
+		if (this.onDragStop) { this.onDragStop(dragEvt, selectEvt); }
+		
+		// TODO: optional
+		selectEvt.cancel();
+	}
 	
 	this.tick = function(dt) {
 		// Overriden in subclass
@@ -395,7 +382,6 @@ var View = exports = Class(lib.PubSub, function() {
 	this.render = function(ctx) {
 		// Overriden in subclass
 	}
-	
 	
 	this.getHeight = function() { return this.style.height; }
 	this.getWidth = function() { return this.style.width; }
@@ -519,3 +505,4 @@ var View = exports = Class(lib.PubSub, function() {
 	this.toString = function() { return 'View' + this.uid; }
 });
 
+View._evtHistory = {};

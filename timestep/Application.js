@@ -60,37 +60,20 @@ var Application = exports = Class(PubSub, function(supr) {
 //		this.now += dt;
 	}
 	
+	var evtTypes = {
+		'scroll': 'input:scroll',
+		'start': 'input:start',
+		'move': 'input:move',
+		'end': 'input:select'
+	};
+	
 	this._tick = function(dt) {
 		
 		var evts = input.getEvents();
 		for (var i = 0, e; e = evts[i]; ++i) {
-			if (e.pt) {
-				var pt = new Point(e.pt);
-			}
-			switch(e.type) {
-				case 'scroll':
-					this._view.wrapInputScroll(pt, e.delta);
-					break;
-				case 'start':
-					this._view.wrapInputStart(pt);
-					break;
-				case 'move':
-					this._view.wrapInputMove(pt);
-					break;
-				case 'end':
-					/**
-					 * hack that we should remove someday:
-					 * - makes drags work correctly without having to implement
-					 *   event capturing/bubbling phases
-					 */
-					this._view.publish('InputSelect', pt);
-					if (this._view._inputData.didCompleteDrag) {
-						this._view._inputData.didCompleteDrag = false;
-					} else {
-						this._view.wrapInputSelect(pt);
-					}
-					break;
-			}
+			var evtType = e.type;
+			if (evtTypes[evtType]) { evtType = evtTypes[evtType]; }
+			this._view.dispatchEvent(evtType, e.pt);
 		}
 		
 		if (this._opts.dtFixed) {
