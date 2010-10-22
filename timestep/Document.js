@@ -53,6 +53,7 @@ exports.onResize = function() {
 	if (this.scalingMode == SCALING.FIXED) {
 		container.style.marginTop = Math.max(0, dim.height - device.height - 10) / 2 + 'px';
 	} else {
+		container.style.margin = '0px';
 	
 		timer = null;
 		
