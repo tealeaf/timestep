@@ -261,13 +261,16 @@ var View = exports = Class(lib.PubSub, function() {
 		
 		View._evtHistory[evtType] = evt;
 		
+		var cbName = this.getCbName(evtType);
+		
 		for (var i = depth - 1; i >= 0; --i) {
-			var view = evt.trace[i];
-			view.onEventPropagate(evt, evt.pt[view.uid], i == 0);
+			var view = evt.trace[i],
+				pt = evt.pt[view.uid];
+			view.onEventPropagate(evt, pt, i == 0);
+			view.publish(evtType + ':capture', evt, pt, i == 0);
 			if (evt.cancelled) { return; }
 		}
 		
-		var cbName = this.getCbName(evtType);
 		for (var i = 0; i < depth; ++i) {
 			var view = evt.trace[i];
 			if (view._canHandleEvents) {
@@ -341,14 +344,15 @@ var View = exports = Class(lib.PubSub, function() {
 		
 		dragEvt.target = this;
 		
-		root.subscribe('input:move', this, '_onDragStart', dragEvt);
-		root.subscribe('input:move', this, '_onDrag', dragEvt);
-		root.subscribe('input:select', this, '_onDragEnd', dragEvt);
+		root.subscribe('input:move:capture', this, '_onDragStart', dragEvt);
+		root.subscribe('input:move:capture', this, '_onDrag', dragEvt);
+		root.subscribe('input:select:capture', this, '_onDragStop', dragEvt);
 	}
 	
 	this._onDragStart = function(dragEvt, moveEvt) {
-		dragEvt.root.unsubscribe('input:move', this, '_onDragStart');
+		dragEvt.root.unsubscribe('input:move:capture', this, '_onDragStart');
 		dragEvt.currPt = dragEvt.srcPt;
+		dragEvt.didDrag = false;
 
 		this.publish('drag:start', dragEvt);
 		if (this.onDragStart) { this.onDragStart(dragEvt); }
@@ -357,16 +361,18 @@ var View = exports = Class(lib.PubSub, function() {
 	this._onDrag = function(dragEvt, moveEvt) {
 		dragEvt.prevPt = dragEvt.currPt;
 		dragEvt.currPt = moveEvt.srcPt;
-		
+		dragEvt.didDrag = true;
+				
 		var delta = Point.subtract(dragEvt.currPt, dragEvt.prevPt);
 		this.publish('drag:move', dragEvt, moveEvt, delta);
 		if (this.onDrag) { this.onDrag(dragEvt, moveEvt, delta); }
 	}
 	
-	this._onDragEnd = function(dragEvt, selectEvt) {
-		dragEvt.root.unsubscribe('input:move', this, '_onDrag');
-		dragEvt.root.unsubscribe('input:select', this, '_onDragStop');
-		if (!dragEvt.currPt) { return; }
+	this._onDragStop = function(dragEvt, selectEvt) {
+		dragEvt.root.unsubscribe('input:move:capture', this, '_onDrag');
+		dragEvt.root.unsubscribe('input:select:capture', this, '_onDragStop');
+		
+		if (!dragEvt.didDrag) { return; }
 		
 		this.publish('drag:stop', dragEvt, selectEvt);
 		if (this.onDragStop) { this.onDragStop(dragEvt, selectEvt); }
