@@ -32,7 +32,8 @@ exports = Class(PubSub, function(supr) {
 		$.onEvent(el, device.events.start, bind(this, 'handleMouse', 'input:start'));
 		$.onEvent(document, device.events.move, bind(this, 'handleMouse', 'input:move'));
 		$.onEvent(document, device.events.end, bind(this, 'handleMouse', 'input:select'));
-		$.onEvent(window, 'DOMMouseScroll', bind(this, 'handleMouse', 'input:scroll'));
+		$.onEvent(window, 'DOMMouseScroll', bind(this, 'handleMouse', 'input:scroll')); // FF
+		$.onEvent(window, 'mousewheel', bind(this, 'handleMouse', 'input:scroll')); // webkit
 		
 		$.onEvent(el, 'touchstart', bind(this, 'touchstart'));
 		$.onEvent(el, 'touchend', bind(this, 'touchend'));
@@ -63,10 +64,10 @@ exports = Class(PubSub, function(supr) {
 		switch(type) {
 			case 'input:scroll':
 				var delta = 0;
-				if (evt.wheelDelta) { /* IE/Opera. */
+				if (evt.wheelDelta) { // IE/Opera/WebKit
 					delta = evt.wheelDelta / 120;
 					if (window.opera) { delta = -delta; }
-				} else if (evt.detail) { /** Mozilla case. */
+				} else if (evt.detail) { // FF
 					delta = -evt.detail;
 				}
 				
