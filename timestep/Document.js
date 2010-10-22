@@ -13,15 +13,16 @@ var SCALING = exports.SCALING = Enum('FIXED', 'RESIZE');
 // bgColor == webpage background
 // appColor == <canvas> background
 exports.init = function(bgColor, appColor) {
+	import .Application;
+
 	if (GLOBAL.document) {
 		document.documentElement.style.cssText = 
-			document.body.style.cssText = 'margin:0px;padding:0px;background:' + bgColor;
+			document.body.style.cssText = 'height:100%;margin:0px;padding:0px;background:' + bgColor;
 		container = document.body.appendChild(document.createElement('div'));
 	
-		container.style.cssText = 'position: relative; margin: 0px auto; width: ' + device.width + 'px; height: ' + device.height + 'px; overflow: hidden; background: ' + appColor;
-	
+		container.style.cssText = 'position: relative; margin: 0px auto; overflow: hidden; background: ' + appColor;
+		
 		$.onEvent(window, 'resize', this, 'onResize');
-		this.onResize();
 	}
 
 	this.setScalingMode(SCALING.FIXED);
@@ -29,31 +30,41 @@ exports.init = function(bgColor, appColor) {
 
 exports.setScalingMode = function(scalingMode) {
 	this.scalingMode = scalingMode;
+	
+	var s = container.style;
+	switch(scalingMode) {
+		case SCALING.FIXED:
+			s.width = device.width + 'px';
+			s.height = device.height + 'px';
+			break;
+		case SCALING.RESIZE:
+			container.style.width = '100%';
+			container.style.height = '100%';
+			break;
+	}
 	this.onResize();
 }
 
-exports.resetStyle = function() {
-	
-}
-	
+var timer = null;
 exports.onResize = function() {
 	if (!container) { return; }
 	
-	var w = (document.documentElement || document).clientWidth,
-		h = (document.documentElement || document).clientHeight;
-	
+	var dim = $(window);
 	if (this.scalingMode == SCALING.FIXED) {
-		container.style.marginTop = Math.max(0, h - device.height - 10) / 2 + 'px';
+		container.style.marginTop = Math.max(0, dim.height - device.height - 10) / 2 + 'px';
 	} else {
-		device.width = w;
-		device.height = h;
+	
+		timer = null;
 		
-		container.style.width = w + 'px';
-		container.style.height = h + 'px';
-		
+		device.width = dim.width;
+		device.height = dim.height;
+
 		var c = canvas.getCanvas();
-		c.el.width = w;
-		c.el.height = h;
+		c.el.width = dim.width;
+		c.el.height = dim.height;
+		
+		var app = Application.get();
+		if (app) { app.render(); }
 	}
 }
 
