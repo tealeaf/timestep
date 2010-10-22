@@ -1,23 +1,27 @@
-jsio('import lib.PubSub as PubSub');
-jsio('import ..device');
-jsio('from util.browser import $');
-jsio('import ..Document');
+"use import";
+
+import lib.PubSub as PubSub;
+import ..device;
+from util.browser import $;
+import ..Document;
+import ..InputEvent;
 
 var GLOBAL_MOUSE_DOWN = false;
 
 exports = Class(PubSub, function(supr) {
 	
 	this.init = function(evtQueue) {
-		var el = this._el = $.create('div');
-		$.style(el, {
-			width: device.width + 'px',
-			height: device.height + 'px',
-			position: 'absolute',
-			top: 0,
-			left: 0,
-			padding: 0,
-			margin: 0,
-			zIndex: 100
+		var el = this._el = $({
+			style: {
+				width: '100%',
+				height: '100%',
+				position: 'absolute',
+				top: 0,
+				left: 0,
+				padding: 0,
+				margin: 0,
+				zIndex: 100
+			}
 		});
 		
 		el.ondragstart = function() { return false; }
@@ -25,10 +29,10 @@ exports = Class(PubSub, function(supr) {
 		
 		this._evtQueue = evtQueue;
 		
-		$.onEvent(el, device.events.start, bind(this, 'handleMouse', 'start'));
-		$.onEvent(document, device.events.move, bind(this, 'handleMouse', 'move'));
-		$.onEvent(document, device.events.end, bind(this, 'handleMouse', 'end'));
-		$.onEvent(window, 'DOMMouseScroll', bind(this, 'handleMouse', 'wheel'));
+		$.onEvent(el, device.events.start, bind(this, 'handleMouse', 'input:start'));
+		$.onEvent(document, device.events.move, bind(this, 'handleMouse', 'input:move'));
+		$.onEvent(document, device.events.end, bind(this, 'handleMouse', 'input:select'));
+		$.onEvent(window, 'DOMMouseScroll', bind(this, 'handleMouse', 'input:scroll'));
 		
 		$.onEvent(el, 'touchstart', bind(this, 'touchstart'));
 		$.onEvent(el, 'touchend', bind(this, 'touchend'));
@@ -57,7 +61,7 @@ exports = Class(PubSub, function(supr) {
 			};
 		
 		switch(type) {
-			case 'wheel':
+			case 'input:scroll':
 				var delta = 0;
 				if (evt.wheelDelta) { /* IE/Opera. */
 					delta = evt.wheelDelta / 120;
@@ -67,21 +71,16 @@ exports = Class(PubSub, function(supr) {
 				}
 				
 				if (delta) {
-					this._evtQueue.push({
-						type: 'scroll',
-						pt: pt,
-						delta: delta
-					});
+					var evt = new InputEvent(type, pt);
+					evt.scrollDelta = delta;
+					this._evtQueue.push(evt);
 				}
 				
 				$.stopEvent(evt);
 				evt.returnValue = false;
 				break;
 			default:
-				this._evtQueue.push({
-					type: type,
-					pt: pt
-				});
+				this._evtQueue.push(new InputEvent(type, pt));
 				break;
 		}
 	}

@@ -7,6 +7,8 @@ import std.js as JS;
 import math2D.Point as Point;
 import math2D.Rect as Rect;
 import math2D.intersect as Intersect;
+
+import .InputEvent;
 import .ViewDebugger;
 
 var UID = 0;
@@ -236,38 +238,20 @@ var View = exports = Class(lib.PubSub, function() {
 		}
 	}
 	
-	var Event = Class(function() {
-		this.depth = 0;
-		this.target = null;
-		this.cancelled = false;
-		
-		this.init = function(root, type, pt) {
-			this.type = type;
-			this.srcPt = pt;
-			this.root = root;
-			this.pt = {};
-			this.trace = [];
-		}
-		
-		this.cancel = function() {
-			this.cancelled = true;
-		}
-	});
-	
-	this.dispatchEvent = function(evtType, pt) {
-		var evt = new Event(this, evtType, pt);
-		this.findTarget(evt, pt);
+	this.dispatchEvent = function(evt) {
+		evt.root = this;
+		this.findTarget(evt, evt.srcPt);
 		var depth = evt.depth;
 		
-		View._evtHistory[evtType] = evt;
+		View._evtHistory[evt.type] = evt;
 		
-		var cbName = this.getCbName(evtType);
+		var cbName = this.getCbName(evt.type);
 		
 		for (var i = depth - 1; i >= 0; --i) {
 			var view = evt.trace[i],
 				pt = evt.pt[view.uid];
 			view.onEventPropagate(evt, pt, i == 0);
-			view.publish(evtType + ':capture', evt, pt, i == 0);
+			view.publish(evt.type + ':capture', evt, pt, i == 0);
 			if (evt.cancelled) { return; }
 		}
 		
@@ -276,7 +260,7 @@ var View = exports = Class(lib.PubSub, function() {
 			if (view._canHandleEvents) {
 				var pt = evt.pt[view.uid];
 				if (view[cbName]) { view[cbName](evt, pt, i == 0); }
-				view.publish(evtType, evt, pt, i == 0);
+				view.publish(evt.type, evt, pt, i == 0);
 				if (evt.cancelled) { break; }
 			}
 		}
@@ -340,9 +324,7 @@ var View = exports = Class(lib.PubSub, function() {
 	this.startDrag = function() {
 		var inputStartEvt = View._evtHistory['input:start'],
 			root = inputStartEvt.root,
-			dragEvt = new Event(root, 'input:drag', inputStartEvt.srcPt);
-		
-		dragEvt.target = this;
+			dragEvt = new InputEvent('input:drag', inputStartEvt.srcPt, root, this);
 		
 		root.subscribe('input:move:capture', this, '_onDragStart', dragEvt);
 		root.subscribe('input:move:capture', this, '_onDrag', dragEvt);
@@ -366,6 +348,8 @@ var View = exports = Class(lib.PubSub, function() {
 		var delta = Point.subtract(dragEvt.currPt, dragEvt.prevPt);
 		this.publish('drag:move', dragEvt, moveEvt, delta);
 		if (this.onDrag) { this.onDrag(dragEvt, moveEvt, delta); }
+		
+		moveEvt.cancel();
 	}
 	
 	this._onDragStop = function(dragEvt, selectEvt) {

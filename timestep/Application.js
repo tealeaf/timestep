@@ -60,20 +60,10 @@ var Application = exports = Class(PubSub, function(supr) {
 //		this.now += dt;
 	}
 	
-	var evtTypes = {
-		'scroll': 'input:scroll',
-		'start': 'input:start',
-		'move': 'input:move',
-		'end': 'input:select'
-	};
-	
 	this._tick = function(dt) {
-		
 		var evts = input.getEvents();
-		for (var i = 0, e; e = evts[i]; ++i) {
-			var evtType = e.type;
-			if (evtTypes[evtType]) { evtType = evtTypes[evtType]; }
-			this._view.dispatchEvent(evtType, e.pt);
+		for (var i = 0, evt; evt = evts[i]; ++i) {
+			this._view.dispatchEvent(evt);
 		}
 		
 		if (this._opts.dtFixed) {
@@ -86,10 +76,10 @@ var Application = exports = Class(PubSub, function(supr) {
 		} else {
 			this.__tick(dt);
 		}
-		this.render(dt);
+		this._render(dt);
 	}
 	
-	this.render = function(dt) {
+	this._render = function(dt) {
 		this._canvas.clear();
 		this._view.wrapRender(this._canvas, dt);
 		if (dt != undefined && this._opts.showFPS) {
@@ -97,6 +87,8 @@ var Application = exports = Class(PubSub, function(supr) {
 		}
 		this._canvas.swap();
 	}
+	
+	this.render = function() { this._render(0); }
 	
 	this.__tick = function(dt) {
 		this.publish('tick', dt);
