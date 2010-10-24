@@ -28,11 +28,7 @@ var Application = exports = Class(PubSub, function(supr) {
 		this._view = opts.view || new StackView(viewOpts)
 		this._canvas = canvas.getCanvas(viewOpts);
 
-/*		this._input.subscribe('touchstart', bind(this._view, 'touchstart'));
-		this._input.subscribe('touchmove', bind(this._view, 'touchmove'));
-		this._input.subscribe('touchend', bind(this._view, 'touchend'));
-		this._input.subscribe('touchcancel', bind(this._view, 'touchcancel'));
-*/
+		input.init();
 		this._keyListener = new KeyListener();
 		this._FPSLastRender= 0;
 		this._FPSCount = 0;

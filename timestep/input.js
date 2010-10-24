@@ -1,12 +1,15 @@
 jsio('import .device');
 
-var evtQueue = [];
+var evtQueue = [],
+	input;
 
-if (device.isTeaLeafIOS) {
-	NATIVE.events.setResponder(evtQueue);
-} else {
-	jsio('import .input.html as inputImpl');
-	new inputImpl(evtQueue);
+exports.init = function() {
+	if (device.isTeaLeafIOS) {
+		NATIVE.events.setResponder(evtQueue);
+	} else if (!input) {
+		jsio('import .input.html as inputImpl');
+		input = new inputImpl(evtQueue);
+	}
 }
 
 exports.getEvents = function() {
