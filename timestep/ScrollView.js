@@ -2,6 +2,9 @@
 
 import .View;
 import std.js as JS;
+import math2D.Rect;
+import math2D.Circle;
+import math2D.intersect;
 
 exports = Class(View, function(supr) {
 	
@@ -16,53 +19,40 @@ exports = Class(View, function(supr) {
 		supr(this, 'init', arguments);
 		opts = JS.merge(opts, defaults);
 		
-		this._fullWidth = opts.fullWidth || opts.width;
-		this._fullHeight = opts.fullHeight || opts.height;
-		this._offsetX = opts.offsetX;
-		this._offsetY = opts.offsetY;
+		this._contentView = new View({
+			width: opts.fullWidth,
+			height: opts.fullHeight,
+			x: opts.offsetX,
+			y: opts.offsetY
+		});
 		
+		this._contentView.setSuperView(this);
 	}
 	
-	this.getOffsetX = function() {
-		return this._offsetX;
-	}
+	this.getOffsetX = function() { return this._contentView.style.x; }
+	this.getOffsetY = function() { return this._contentView.style.y; }
+	this.setOffsetX = function(x) { this._contentView.style.x = x; }
+	this.setOffsetY = function(y) { this._contentView.style.y = y; }
 	
-	this.getOffsetY = function() {
-		return this._offsetY;
-	}
-	
-	this.setOffsetX = function(x) {
-		this._offsetX = x > 0 ? x : 0;
-	}
-	
-	this.setOffsetY = function(y) {
-		this._offsetY = y > 0 ? y : 0;
-	}
-	
-	this.getFullWidth = function() {
-		return this._fullWidth;
-	}
-	
-	this.getFullHeight= function() {
-		return this._fullHeight;
-	}
+	this.getFullWidth = function() { return this._contentView.style.width; }
+	this.getFullHeight= function() { return this._contentView.style.height; }
 	
 	this._renderSubviews = function(ctx) {
-		var x1 = this._offsetX;
-		var y1 = this._offsetY;
-		var x2 = x1 + this._width;
-		var y2 = y1 + this._height;
+		var s = this.style,
+			scale = s.scale,
+			cvs = this._contentView.style,
+			viewable = new math2D.Rect(cvs.x, cvs.y, s.width / scale, s.height / scale);
+		
+		ctx.translate(-viewable.x, -viewable.y);
 		for (var i = 0, view; view = this._subViews[i]; ++i) {
-			var viewX1 = view.getX();
-			var viewY1 = view.getY();
-			var viewX2 = viewX1 + view.getWidth();
-			var viewY2 = viewY1 + view.getHeight();
-			if (viewX1 <= x2 && viewX2 >= x1 && viewY1 <= y2 && viewY2 >= y1) {
-				ctx.translate(-Math.floor(this._offsetX), -Math.floor(this._offsetY));
-				view.wrapRender(ctx);
+			var s = view.getBoundingShape(),
+				draw = false;
+			if (s instanceof math2D.Circle) {
+				draw = math2D.intersect.circleAndRect(s, viewable);
+			} else if (s instanceof math2D.Rect) {
+				draw = math2D.intersect.rectAndRect(s, viewable);
 			}
+			if (draw) { view.wrapRender(ctx); }
 		}
 	}
-
-	
-})
+});
