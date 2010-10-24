@@ -6,6 +6,7 @@ import lib.Sortable;
 import std.js as JS;
 import math2D.Point as Point;
 import math2D.Rect as Rect;
+import math2D.Circle as Circle;
 import math2D.intersect as Intersect;
 
 import .InputEvent;
@@ -186,6 +187,15 @@ var View = exports = Class(lib.PubSub, function() {
 				: Intersect.ptAndRect(pt, new Rect(0, 0, s.width, s.height));  // bounding box
 	}
 	
+	this.getBoundingShape = function() {
+		var s = this.style;
+		if (this._circle) {
+			return new Circle(s.x, s.y, s.radius / s.scale);
+		} else {
+			return new Rect(s.x, s.y, s.width / s.scale, s.height / s.scale);
+		}
+	}
+	
 	this.updateRadius = function() {
 		var s = this.style,
 			w = s.width,
@@ -204,12 +214,14 @@ var View = exports = Class(lib.PubSub, function() {
 	this._onInputOver = function() {
 		if (this._isInputOver) { return; }
 		this._isInputOver = true;
+		if (this.onInputOver) { this.onInputOver(); }
 		this.publish('input:over');
 	}
 	
 	this._onInputOut = function() {
 		if (!this._isInputOver) { return; }
 		this._isInputOver = false;
+		if (this.onInputOut) { this.onInputOut(); }
 		this.publish('input:out');
 	}
 	
@@ -357,12 +369,12 @@ var View = exports = Class(lib.PubSub, function() {
 		dragEvt.root.unsubscribe('input:select:capture', this, '_onDragStop');
 		
 		if (!dragEvt.didDrag) { return; }
+
+		// handler can 'uncancel' the selectEvt by setting 'selectEvt.cancelled = false;'
+		selectEvt.cancel();
 		
 		this.publish('drag:stop', dragEvt, selectEvt);
 		if (this.onDragStop) { this.onDragStop(dragEvt, selectEvt); }
-		
-		// TODO: optional
-		selectEvt.cancel();
 	}
 	
 	this.tick = function(dt) {
@@ -392,6 +404,8 @@ var View = exports = Class(lib.PubSub, function() {
 		return {
 			x: s.x,
 			y: s.y,
+			width: s.width,
+			height: s.height,
 			r: s.r
 		};
 	}
