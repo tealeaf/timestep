@@ -19,6 +19,7 @@ exports = Class(View, function(supr) {
 		view.style.height = this.style.height;
 		this.stack.push(view);
 		this._show(view, dontAnimate);
+		return view;
 	}
 	
 	this._hide = function(view, dontAnimate) {
