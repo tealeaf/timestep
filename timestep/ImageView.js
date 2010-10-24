@@ -28,6 +28,9 @@ var ImageView = exports = Class(View, function(supr) {
 		s.height = this._img.getOrigH();
 		this.updateRadius(); // computes radius based on width/height
 	}
+	
+	this.getOrigW = function() { return this._img.getOrigW(); }
+	this.getOrigH = function() { return this._img.getOrigH(); }
 		
 	this.render = function(ctx) {
 		if (this._img) {
