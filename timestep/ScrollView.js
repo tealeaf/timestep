@@ -3,6 +3,7 @@
 import .View;
 import std.js as JS;
 import math2D.Rect;
+import math2D.Point;
 import math2D.Circle;
 import math2D.intersect;
 
@@ -23,16 +24,21 @@ exports = Class(View, function(supr) {
 			width: opts.fullWidth,
 			height: opts.fullHeight,
 			x: opts.offsetX,
-			y: opts.offsetY
+			y: opts.offsetY,
+			infinite: true
 		});
 		
-		this._contentView.setSuperView(this);
+		supr(this, 'addSubview', [this._contentView]);
 	}
 	
-	this.getOffsetX = function() { return this._contentView.style.x; }
-	this.getOffsetY = function() { return this._contentView.style.y; }
-	this.setOffsetX = function(x) { this._contentView.style.x = x; }
-	this.setOffsetY = function(y) { this._contentView.style.y = y; }
+	this.addSubview = function(view) { return this._contentView.addSubview(view); }
+	this.removeSubview = function(view) { return this._contentView.removeSubview(view); }
+	
+	this.getOffset = function() { return new math2D.Point(this._contentView.style); }
+	this.setOffset = function(p) {
+		this._contentView.style.x = p.x;
+		this._contentView.style.y = p.y;
+	}
 	
 	this.getFullWidth = function() { return this._contentView.style.width; }
 	this.getFullHeight= function() { return this._contentView.style.height; }
@@ -41,10 +47,11 @@ exports = Class(View, function(supr) {
 		var s = this.style,
 			scale = s.scale,
 			cvs = this._contentView.style,
-			viewable = new math2D.Rect(cvs.x, cvs.y, s.width / scale, s.height / scale);
+			viewable = new math2D.Rect(-cvs.x, -cvs.y, s.width / scale, s.height / scale),
+			views = this._contentView._subViews;
 		
 		ctx.translate(-viewable.x, -viewable.y);
-		for (var i = 0, view; view = this._subViews[i]; ++i) {
+		for (var i = 0, view; view = views[i]; ++i) {
 			var s = view.getBoundingShape(),
 				draw = false;
 			if (s instanceof math2D.Circle) {
