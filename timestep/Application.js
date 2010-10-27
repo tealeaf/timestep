@@ -11,17 +11,15 @@ jsio('import math2D.Point as Point');
 var __instance = null;
 
 var Application = exports = Class(PubSub, function(supr) {
-	var defaults = {
-		width: device.width,
-		height: device.height,
-		view: null,
-		dtFixed: 0,
-		dtMinimum: 0
-	}
-	
 	this.init = function(opts) {
 		if (!__instance) { __instance = this; }
-		this._opts = opts = JS.merge(opts, defaults);
+		this._opts = opts = JS.merge(opts, {
+			width: device.width,
+			height: device.height,
+			view: null,
+			dtFixed: 0,
+			dtMinimum: 0
+		});
 		Timer.onTick = bind(this, '_tick');
 		
 		var viewOpts = { width: opts.width, height: opts.height};
