@@ -42,16 +42,22 @@ exports = Class(BufferedCanvas, function(supr) {
 		ctx.swap = function() {};
 		ctx.execSwap = function() {};
 		
-		ctx.strokeCircle = function(x, y, radius) {
+		ctx.circle = function(x, y, radius) {
 			this.beginPath();
 			this.arc(x, y, radius, 0, 2 * Math.PI, true);
-			this.stroke();
 		}
 		
-		ctx.fillCircle = function(x, y, radius) {
+		ctx.roundRect = function(x, y, width, height, radius) {
 			this.beginPath();
-			this.arc(x, y, radius, 0, 2 * Math.PI, true);
-			this.fill();
+			this.moveTo(x,y+radius);
+			this.lineTo(x,y+height-radius);
+			this.quadraticCurveTo(x,y+height,x+radius,y+height);
+			this.lineTo(x+width-radius,y+height);
+			this.quadraticCurveTo(x+width,y+height,x+width,y+height-radius);
+			this.lineTo(x+width,y+radius);
+			this.quadraticCurveTo(x+width,y,x+width-radius,y);
+			this.lineTo(x+radius,y);
+			this.quadraticCurveTo(x,y,x,y+radius);
 		}
 		
 		ctx.loadIdentity = function() {

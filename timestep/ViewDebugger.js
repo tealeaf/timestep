@@ -45,7 +45,8 @@ exports = Class(function() {
 				ctx.setFillStyle('rgba(0, 0, 0, ' + c.o + ')');
 				c.o -= 0.4 * dt / 1000;
 				if (c.o > 0) {
-					ctx.fillCircle(c.x, c.y, 15);
+					ctx.circle(c.x, c.y, 15);
+					ctx.fill();
 				} else {
 					t._clicks.splice(i, 1);
 				}
