@@ -74,6 +74,7 @@ exports = Class(PubSub, function(supr) {
 				if (delta) {
 					var evt = new InputEvent(type, pt);
 					evt.scrollDelta = delta;
+					evt.scrollAxis = 'axis' in evt ? evt.axis == evt.VERTICAL_AXIS : true;
 					this._evtQueue.push(evt);
 				}
 				
