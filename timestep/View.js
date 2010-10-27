@@ -149,9 +149,8 @@ var View = exports = Class(lib.PubSub, function() {
 		var err = null;
 		try {
 			this.render(ctx);
-		} finally {
 			this._renderSubviews(ctx, dt);
-		
+		} finally {
 			if (this.debug) { this.debug.postRender(ctx, dt); }
 			ctx.restore();
 		}
@@ -290,8 +289,8 @@ var View = exports = Class(lib.PubSub, function() {
 					//   input:over and input:out
 					
 					// fire input:out events first, start with deepest node and work out
-					if (View._mouseOver && evt.trace[0] != View._mouseOver[0]) {
-						var trace = View._mouseOver;
+					if (View._inputOverTrace && evt.trace[0] != View._inputOverTrace[0]) {
+						var trace = View._inputOverTrace;
 						for (var i = 0, view; view = trace[i]; ++i) {
 							if (!(view.uid in evt.pt)) {
 								view._onInputOut();
@@ -306,7 +305,7 @@ var View = exports = Class(lib.PubSub, function() {
 					}
 					
 					// update current mouse trace
-					View._mouseOver = trace;
+					View._inputOverTrace = trace;
 					break;
 			}
 		}
@@ -334,6 +333,9 @@ var View = exports = Class(lib.PubSub, function() {
 	}
 	
 	this.startDrag = function() {
+		if (this._isDragging) { return; }
+		this._isDragging = true;
+		
 		var inputStartEvt = View._evtHistory['input:start'],
 			root = inputStartEvt.root,
 			dragEvt = new InputEvent('input:drag', inputStartEvt.srcPt, root, this);
@@ -347,7 +349,7 @@ var View = exports = Class(lib.PubSub, function() {
 		dragEvt.root.unsubscribe('input:move:capture', this, '_onDragStart');
 		dragEvt.currPt = dragEvt.srcPt;
 		dragEvt.didDrag = false;
-
+		
 		this.publish('drag:start', dragEvt);
 		if (this.onDragStart) { this.onDragStart(dragEvt); }
 	}
@@ -355,21 +357,24 @@ var View = exports = Class(lib.PubSub, function() {
 	this._onDrag = function(dragEvt, moveEvt) {
 		dragEvt.prevPt = dragEvt.currPt;
 		dragEvt.currPt = moveEvt.srcPt;
-		dragEvt.didDrag = true;
+		View._isDragging = true;
 				
 		var delta = Point.subtract(dragEvt.currPt, dragEvt.prevPt);
 		this.publish('drag:move', dragEvt, moveEvt, delta);
 		if (this.onDrag) { this.onDrag(dragEvt, moveEvt, delta); }
 		
-		moveEvt.cancel();
+		//moveEvt.cancel();
 	}
 	
 	this._onDragStop = function(dragEvt, selectEvt) {
+		this._isDragging = false;
+		dragEvt.root.unsubscribe('input:move:capture', this, '_onDragStart');
 		dragEvt.root.unsubscribe('input:move:capture', this, '_onDrag');
 		dragEvt.root.unsubscribe('input:select:capture', this, '_onDragStop');
 		
-		if (!dragEvt.didDrag) { return; }
-
+		if (!View._isDragging) { return; }
+		View._isDragging = false;
+		
 		// handler can 'uncancel' the selectEvt by setting 'selectEvt.cancelled = false;'
 		selectEvt.cancel();
 		
@@ -510,3 +515,5 @@ var View = exports = Class(lib.PubSub, function() {
 });
 
 View._evtHistory = {};
+View._isDragging = false;
+View.isDragging = function() { return this._isDragging; }
