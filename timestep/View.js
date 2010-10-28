@@ -345,6 +345,8 @@ var View = exports = Class(lib.PubSub, function() {
 		root.subscribe('input:select:capture', this, '_onDragStop', dragEvt);
 	}
 	
+	this.isDragging = function() { return this._isDragging && View._isDragging; }
+	
 	this._onDragStart = function(dragEvt, moveEvt) {
 		dragEvt.root.unsubscribe('input:move:capture', this, '_onDragStart');
 		dragEvt.currPt = dragEvt.srcPt;

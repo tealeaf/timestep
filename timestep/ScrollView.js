@@ -40,6 +40,8 @@ exports = Class(View, function(supr) {
 		this._contentView.style.y = p.y;
 	}
 	
+	this.getContentView = function() { return this._contentView; }
+	
 	this.getFullWidth = function() { return this._contentView.style.width; }
 	this.getFullHeight= function() { return this._contentView.style.height; }
 	
