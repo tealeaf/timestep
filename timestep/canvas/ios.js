@@ -8,18 +8,25 @@ Image = Class(function() {
 		this.__defineSetter__('src', function(value) {
 			if (!value) {
 				logger.error('empty src set on an image!');
+				this.onerror();
 				return;
 			}
 			
 			value = String(std.uri.relativeTo(value, jsio.__env.getCwd()));
 			
 			this._src = value;
+			
+			var dim = NATIVE.gl.loadImage(value);
+			this.width = this.originalWidth = dim.width;
+			this.height = this.originalHeight = dim.height;
 			this.onload();
-			logger.log('IMAGE: ' + value);
+			logger.log('IMAGE: ' + value, dim.width, dim.height);
 		});
 		
 		this.__defineGetter__('src', function() { return this._src; });
 	}
+	
+	this.onload = this.onerror = function() {}
 });
 
 var canvasSingleton = null;
@@ -55,6 +62,10 @@ exports = Class(BufferedCanvas, function(supr) {
 		// TODO: NATIVE.gl.hide();
 	}
 	
+	this.clear = function() {
+		NATIVE.gl.clear();
+	}
+	
 	this.execSwap = function(operations) {}
 	
 	this.save = NATIVE.gl.push;
@@ -69,6 +80,13 @@ exports = Class(BufferedCanvas, function(supr) {
 		NATIVE.gl.rotate(r, 0, 0, 1);
 	}
 	this.scale = NATIVE.gl.scale;
+	
+	this.setGlobalAlpha = function(alpha) {
+		this._alpha = alpha;
+		NATIVE.gl.setAlpha(alpha);
+	}
+	this.getGlobalAlpha = function() { return this._alpha; }
+	
 	
 });
 

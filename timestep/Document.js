@@ -31,6 +31,8 @@ exports.init = function(bgColor, appColor) {
 exports.setScalingMode = function(scalingMode) {
 	this.scalingMode = scalingMode;
 	
+	if (!container) { return; }
+	
 	var s = container.style;
 	switch(scalingMode) {
 		case SCALING.FIXED:

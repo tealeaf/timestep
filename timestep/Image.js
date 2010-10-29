@@ -85,6 +85,10 @@ exports = Class(function() {
 	this.render = function(ctx, destX, destY, destW, destH) {
 		if (!this._isReady) { return; }
 		try {
+		if (destW > 600) { throw e;
+			logger.log('DRAWING', this._sourceImage.src); }
+		}catch(e) {logger.log(e.stack);}
+		try {
 			ctx.drawImage(this._sourceImage, this._sourceX, this._sourceY, this._sourceW, this._sourceH, destX|0, destY|0, destW|0, destH|0);
 		} catch(e) {}
 	}

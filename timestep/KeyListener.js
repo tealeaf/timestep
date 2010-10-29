@@ -1,6 +1,8 @@
 jsio('import .device');
 if (device.isTeaLeafIOS) {
-	exports = function() {};
+	exports = function() {
+		this.setEnabled = function() {}
+	};
 	return;
 }
 
