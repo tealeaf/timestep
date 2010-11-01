@@ -37,7 +37,7 @@ var View = exports = Class(lib.PubSub, function() {
 	this.init = function(opts) {
 		this._opts = opts = JS.merge(opts, defaults);
 		this._inputData = {};
-		this.uid = ++UID;
+		this.uid = ++UID + (opts.id || '');
 		
 		this.style = {
 			x: opts.x,
@@ -181,6 +181,7 @@ var View = exports = Class(lib.PubSub, function() {
 		if (this._infinite) { return true; }  // infinite plane
 
 		var s = this.style;
+		if (this._circle && !this.style.radius) { this.updateRadius(); }
 		return this._circle
 				? pt.x * pt.x + pt.y * pt.y < s.radius * s.radius  // bounding circle
 				: Intersect.ptAndRect(pt, new Rect(0, 0, s.width, s.height));  // bounding box

@@ -45,8 +45,7 @@ exports = Class(function() {
 		}
 		
 		this._isReady = false;
-		this._cb.run(this, '_onLoad');
-		status.cb.run(this._cb.chain());
+		status.cb.run(this, '_onLoad');
 	}
 	
 	this.getOrigW = function() { return this._sourceImage.width; }
@@ -67,7 +66,7 @@ exports = Class(function() {
 	this._onLoad = function(stat) {
 		
 		// _onLoad is a chained callback, so each result set is an index in stat
-		if (stat[0][0] == false) {
+		if (!stat) {
 			// TODO: something better?
 			logger.error('Image failed to load:', this._url)
 			return;
@@ -84,10 +83,6 @@ exports = Class(function() {
 	this.isReady = function() { return this._isReady; }
 	this.render = function(ctx, destX, destY, destW, destH) {
 		if (!this._isReady) { return; }
-		try {
-		if (destW > 600) { throw e;
-			logger.log('DRAWING', this._sourceImage.src); }
-		}catch(e) {logger.log(e.stack);}
 		try {
 			ctx.drawImage(this._sourceImage, this._sourceX, this._sourceY, this._sourceW, this._sourceH, destX|0, destY|0, destW|0, destH|0);
 		} catch(e) {}
