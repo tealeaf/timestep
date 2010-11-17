@@ -46,7 +46,7 @@ exports = Class(function() {
 		$.stopEvent(e);
 		
 		// We already know that key is down; ignore repeat events.
-		if (this._keyMap[e.keyCode]) { return; }
+		if (e.keyCode in this._keyMap) { return; }
 		
 		var event = {
 			code: e.keyCode,
@@ -55,7 +55,7 @@ exports = Class(function() {
 		};
 		
 		this._events.push(event);
-		this._keyMap[e.keyCode] = true;
+		this._keyMap[e.keyCode] = +new Date();
 	}
 	
 	this.onKeyUp = function(e) {

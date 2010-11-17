@@ -27,8 +27,10 @@ var ImageView = exports = Class(View, function(supr) {
 		} else {
 			this._img = opts.image;
 		}
-		
-		this._img.doOnLoad(this, 'autoSize', opts.autoSize);
+
+		if (this._img && this._img.doOnLoad) {
+			this._img.doOnLoad(this, 'autoSize', opts.autoSize);
+		}
 	}
 	
 	this.doOnLoad = function() { this._img.doOnLoad.apply(this._img, arguments); return this; }
