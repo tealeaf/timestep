@@ -7,6 +7,10 @@ exports.getCanvas = function(opts) {
 	return canvasSingleton;
 }
 
+exports.newCanvas = function(opts) {
+	return new canvasImpl(opts);
+}
+
 function getter(name) {
 	return (function() {
 		return this._ctx[name];

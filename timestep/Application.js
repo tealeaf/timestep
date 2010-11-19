@@ -7,12 +7,14 @@ jsio('import std.js as JS');
 jsio('import lib.PubSub as PubSub');
 jsio('import .KeyListener');
 jsio('import math2D.Point as Point');
+jsio('from util.browser import $');
 
 var __instance = null;
 
 var Application = exports = Class(PubSub, function(supr) {
 	this.init = function(opts) {
 		if (!__instance) { __instance = this; }
+		
 		this._opts = opts = JS.merge(opts, {
 			width: device.width,
 			height: device.height,
@@ -20,12 +22,21 @@ var Application = exports = Class(PubSub, function(supr) {
 			dtFixed: 0,
 			dtMinimum: 0
 		});
+		
 		Timer.onTick = bind(this, '_tick');
 		
-		var viewOpts = { width: opts.width, height: opts.height};
-		this._view = opts.view || new StackView(viewOpts)
-		this._canvas = canvas.getCanvas(viewOpts);
-
+		this._el = $.create({});
+		this._view = opts.view || new StackView({
+			width: opts.width,
+			height: opts.height
+		});
+		
+		this._canvas = canvas.newCanvas({
+			width: opts.width,
+			height: opts.height,
+			parent: this._el
+		});
+		
 		input.init();
 		this._keyListener = new KeyListener();
 		this._FPSLastRender= 0;
