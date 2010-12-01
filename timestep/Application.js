@@ -16,34 +16,44 @@ var Application = exports = Class(PubSub, function(supr) {
 		if (!__instance) { __instance = this; }
 		
 		this._opts = opts = JS.merge(opts, {
+			keyListenerEnabled: true,
 			width: device.width,
 			height: device.height,
 			view: null,
 			dtFixed: 0,
-			dtMinimum: 0
+			dtMinimum: 0,
+			alwaysRepaint: true,
+			repaintOnEvent: false,
+			el: $ ? $({}) : null // TODO: hack to create an element in the browser versus iphone
 		});
 		
 		Timer.onTick = bind(this, '_tick');
 		
-		this._el = $.create({});
+		this._el = this._opts.el;
+		
 		this._view = opts.view || new StackView({
 			width: opts.width,
 			height: opts.height
 		});
 		
+		// TODO: this is ugly
 		this._canvas = canvas.newCanvas({
 			width: opts.width,
 			height: opts.height,
 			parent: this._el
 		});
 		
-		input.init();
+		this._input = new input(this._canvas);
+		
 		this._keyListener = new KeyListener();
+		this._keyListener.setEnabled(this._opts.keyListenerEnabled);
 		this._FPSLastRender= 0;
 		this._FPSCount = 0;
 		this._FPS = 0;
 		this._tickBuffer = 0;
 	}
+	
+	this.getCanvas = function() { return this._canvas; }
 	
 	this.getView = function() { return this._view; }
 	this.setView = function(view) { this._view = view; }
@@ -60,15 +70,15 @@ var Application = exports = Class(PubSub, function(supr) {
 		Timer.stop();
 	}
 	
-	this.fastForward = function(dt) {
-//		logger.info('FAST_FORWARD', this.now, dt);
-//		this.now += dt;
-	}
-	
 	this._tick = function(dt) {
-		var evts = input.getEvents();
+		this._needsRepaint = false;
+		
+		var evts = this._input.getEvents();
 		for (var i = 0, evt; evt = evts[i]; ++i) {
+			evt.srcApp = this;
 			this._view.dispatchEvent(evt);
+			
+			if (this._opts.repaintOnEvent) { this.needsRepaint(); }
 		}
 		
 		if (this._opts.dtFixed) {
@@ -81,7 +91,10 @@ var Application = exports = Class(PubSub, function(supr) {
 		} else {
 			this.__tick(dt);
 		}
-		this._render(dt);
+		
+		if (this._opts.alwaysRepaint || this._needsRepaint) {
+			this._render(dt);
+		}
 	}
 	
 	this._render = function(dt) {
@@ -95,9 +108,11 @@ var Application = exports = Class(PubSub, function(supr) {
 	
 	this.render = function() { this._render(0); }
 	
+	this.needsRepaint = function() { this._needsRepaint = true; }
+	
 	this.__tick = function(dt) {
 		this.publish('tick', dt);
-		this._view.wrapTick(dt);
+		this._view.wrapTick(this, dt);
 		if (this._keyListener.clear) {
 			this._keyListener.clear();
 		}

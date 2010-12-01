@@ -103,6 +103,14 @@ var Point = Class(function() {
 	}
 });
 
+var Runnable = Class(function() {
+	this.init = function(exec, duration, transition) {
+		this.exec = exec;
+		this.duration = duration || 0;
+		this.transition = transition || exports.easeInOut;
+	}
+});
+
 var Queue = exports.Queue = Class(lib.PubSub, function() {
 	this.init = function(view) {
 		this.view = view;
@@ -116,8 +124,6 @@ var Queue = exports.Queue = Class(lib.PubSub, function() {
 		this._queue = [];
 		return this;
 	}
-	
-	this.unresolve = function() { this._resolvedStyle = JS.shallowCopy(this.view.style); }
 	
 	this.start = function() { this._elapsed = 0; this.resume(); }
 	this.resume = function() {
@@ -149,7 +155,7 @@ var Queue = exports.Queue = Class(lib.PubSub, function() {
 	
 	this.then = function(style, duration, transition) {
 		if (typeof style == 'function') {
-			this._queue.push(style);
+			this._queue.push(new Runnable(style, duration, transition));
 		} else {
 			this._queue.push(new Point(style, duration, transition));
 		}
@@ -160,7 +166,7 @@ var Queue = exports.Queue = Class(lib.PubSub, function() {
 	this.debug = function() { this._debug = true; }
 	
 	this.resolveDeltas = function(style, againstStyle) {
-		var resolvedStyle = againstStyle || this._resolvedStyle;
+		var resolvedStyle = againstStyle || this._baseStyle;
 		for (var key in style) {
 			var r = key.substring(1);
 			if (key.charAt(0) == 'd' && !(key in resolvedStyle) && (r in resolvedStyle)) {
@@ -171,11 +177,13 @@ var Queue = exports.Queue = Class(lib.PubSub, function() {
 	}
 	
 	this.resolveStyle = function(prevTarget) {
-		var s = this._resolvedStyle;
+		var s = this._baseStyle;
 		for (var i in s) {
 			s[i] = i in prevTarget ? prevTarget[i] : s[i];
 		}
 	}
+	
+	this.copyBaseStyle = function() { this._baseStyle = JS.shallowCopy(this.view.style); }
 	
 	this.commit = function() {
 		this._elapsed = 0;
@@ -199,37 +207,40 @@ var Queue = exports.Queue = Class(lib.PubSub, function() {
 		if (!this._queue[0]) { return; }
 		
 		while ((p = this._queue[0])) {
-			if (typeof p == 'function') {
-				this._queue.shift();
-				if (p()) { target = null; }
-				continue;
+			this.view.needsRepaint();
+			
+			var isRunnable = p instanceof Runnable;
+			
+			if (!p._resolved) {
+				this.copyBaseStyle();
+				p._resolved = true;
 			}
 			
-			if (target) { // from previous iteration?
-				this.resolveStyle(target);
-				if (this._debug) { logger.log('next', p.target); }
+			if (!isRunnable) {
+				target = p.target;
+				
+				if (!p._checkedDeltas) {
+					this.resolveDeltas(target);
+					p._checkedDeltas = true;
+				}
+			}
+
+			var isFinished = this._elapsed >= p.duration,
+				t = isFinished ? 1 : this._elapsed / p.duration,
+				tt = p.transition(t);
+				
+			if (isRunnable) {
+				p.exec.call(this.view, tt, t, this._baseStyle);
 			} else {
-				this.unresolve();
-			}
-			
-			target = p.target;
-			
-			if (!this._checkedDeltas) {
-				this.resolveDeltas(target);
-				this._checkedDeltas = true;
-			}
-			
-			if (this._elapsed < p.duration) {
-				var tt = p.transition(this._elapsed / p.duration);
 				this._set(target, tt);
-				return;
 			}
-			
-			this._set(target, 1);
+
+			if (!isFinished) {
+				return; // wait for next tick
+			}
 			
 			this._queue.shift();
 			this._elapsed -= p.duration;
-			this._checkedDeltas = false;
 		}
 		
 		this.stop();
@@ -237,7 +248,7 @@ var Queue = exports.Queue = Class(lib.PubSub, function() {
 	}
 	
 	this._set = function(newStyle, t) {
-		var oldStyle = this._resolvedStyle;
+		var oldStyle = this._baseStyle;
 		for (var key in newStyle) {
 			if (key in oldStyle) {
 				this.view.style[key] = (newStyle[key] - oldStyle[key]) * t + oldStyle[key];

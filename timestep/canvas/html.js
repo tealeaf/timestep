@@ -25,7 +25,10 @@ exports = function(opts) {
 	el.height = opts.height;
 	
 	var ctx = el.getContext('2d');
-	ctx.el = el;
+	ctx.getElement = function() { return el; }
+	
+	ctx.reset = function() {}
+	
 	ctx.show = function() {
 		if (parentNode) {
 			parentNode.appendChild(el);

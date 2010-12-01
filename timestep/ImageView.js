@@ -33,7 +33,12 @@ var ImageView = exports = Class(View, function(supr) {
 		}
 	}
 	
-	this.doOnLoad = function() { this._img.doOnLoad.apply(this._img, arguments); return this; }
+	this.doOnLoad = function() {
+		this._img.doOnLoad.apply(this._img, arguments);
+		this.needsRepaint();
+		return this;
+	}
+	
 	this.autoSize = function(method, url, width, height) {
 		switch(method) {
 			case 'resize':

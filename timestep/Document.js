@@ -62,9 +62,11 @@ exports.onResize = function() {
 		device.width = dim.width;
 		device.height = dim.height;
 
-		var c = canvas.getCanvas();
-		c.el.width = dim.width;
-		c.el.height = dim.height;
+		var c = canvas.getCanvas(),
+			el = c.getElement();
+		
+		el.width = dim.width;
+		el.height = dim.height;
 		
 		var app = Application.get();
 		if (app) { app.render(); }
@@ -72,7 +74,11 @@ exports.onResize = function() {
 }
 
 exports.getContainer = function() { return container || document && document.body || null; }
-exports.appendChild = function(el) { exports.getContainer().appendChild(el); }
+exports.appendChild = function(el) {
+	if ($) {
+		exports.getContainer().appendChild(el);
+	}
+}
 
 exports.getOffset = function() {
 	var container = exports.getContainer();

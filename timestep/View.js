@@ -72,6 +72,8 @@ var View = exports = Class(lib.PubSub, function() {
 		}
 	}
 	
+	this.needsRepaint = function() { this._needsRepaint = true; }
+	
 	this.getSuperView = function() {
 		return this._superView;
 	}
@@ -85,6 +87,7 @@ var View = exports = Class(lib.PubSub, function() {
 		this._subViews.push(view);
 		this.sort();
 		view.setSuperView(this);
+		this.needsRepaint();
 		return view;
 	}
 	
@@ -103,6 +106,7 @@ var View = exports = Class(lib.PubSub, function() {
 				if (targetView._superView == this) {
 					targetView._superView = null;
 				}
+				this.needsRepaint();
 				break;
 			}
 		}
@@ -162,10 +166,15 @@ var View = exports = Class(lib.PubSub, function() {
 		}
 	}
 	
-	this.wrapTick = function(dt) {
-		this.tick(dt);
+	this.wrapTick = function(app, dt) {
+		this.tick(app, dt);
 		for (var i = 0, view; view = this._subViews[i]; ++i) {
-			view.wrapTick(dt);
+			view.wrapTick(app, dt);
+		}
+		
+		if (this._needsRepaint) {
+			this._needsRepaint = false;
+			app.needsRepaint();
 		}
 	}
 	
@@ -216,6 +225,7 @@ var View = exports = Class(lib.PubSub, function() {
 		this._isInputOver = true;
 		if (this.onInputOver) { this.onInputOver(); }
 		this.publish('input:over');
+		this.needsRepaint();
 	}
 	
 	this._onInputOut = function() {
@@ -223,6 +233,7 @@ var View = exports = Class(lib.PubSub, function() {
 		this._isInputOver = false;
 		if (this.onInputOut) { this.onInputOut(); }
 		this.publish('input:out');
+		this.needsRepaint();
 	}
 	
 	this.isInputOver = function() { return this._isInputOver; }

@@ -1,75 +1,61 @@
 "use import";
 
-import lib.PubSub as PubSub;
 import ...device;
 from util.browser import $;
-import ...Document;
 import ...InputEvent;
 
-var evtQueue = [];
-
-exports.init = function() {
-	input = new InputHandler(evtQueue);
-}
-
-exports.getEvents = function() {
-	return evtQueue.splice(0, evtQueue.length);
-}
-
-var GLOBAL_MOUSE_DOWN = false;
-
-var InputHandler = Class(PubSub, function(supr) {
+exports = Class(function(supr) {
 	
-	this.init = function(evtQueue) {
-		var el = this._el = $({
-			style: {
-				width: '100%',
-				height: '100%',
-				position: 'absolute',
-				top: 0,
-				left: 0,
-				padding: 0,
-				margin: 0,
-				zIndex: 100
-			}
-		});
+	this.init = function(targetCanvas) {
 		
+		// env browser canvas has a getElement function
+		var el = this._el = targetCanvas.getElement();
 		el.ondragstart = function() { return false; }
 		el.onselectstart = function() { return false; }
 		
-		this._evtQueue = evtQueue;
+		this._evtQueue = [];
 		
-		$.onEvent(el, device.events.start, bind(this, 'handleMouse', 'input:start'));
-		$.onEvent(document, device.events.move, bind(this, 'handleMouse', 'input:move'));
-		$.onEvent(document, device.events.end, bind(this, 'handleMouse', 'input:select'));
-		$.onEvent(window, 'DOMMouseScroll', bind(this, 'handleMouse', 'input:scroll')); // FF
-		$.onEvent(window, 'mousewheel', bind(this, 'handleMouse', 'input:scroll')); // webkit
+		$.onEvent(el, 'mouseover', this, 'onMouseOver');
+		$.onEvent(el, 'mouseout', this, 'onMouseOut');
+		
+		$.onEvent(el, device.events.start, this, 'handleMouse', 'input:start');
+		$.onEvent(document, device.events.move, this, 'handleMouse', 'input:move');
+		$.onEvent(document, device.events.end, this, 'handleMouse', 'input:select');
+		$.onEvent(window, 'DOMMouseScroll', this, 'handleMouse', 'input:scroll'); // FF
+		$.onEvent(window, 'mousewheel', this, 'handleMouse', 'input:scroll'); // webkit
 		
 		$.onEvent(el, 'touchstart', bind(this, 'touchstart'));
 		$.onEvent(el, 'touchend', bind(this, 'touchend'));
 		$.onEvent(el, 'touchmove', bind(this, 'touchmove'));
 		$.onEvent(el, 'touchcancel', bind(this, 'touchcancel'));
-		
-		if (Document.getContainer()) {
-			Document.appendChild(el);
-		} else {
-			var timer = setInterval(bind(this, function() {
-				if (Document.getContainer()) {
-					clearInterval(timer);
-					Document.appendChild(el);
-				}
-			}), 0);
-		}
+	}
+	
+	this.onMouseOver = function() { this._isOver = true; }
+	this.onMouseOut = function() { this._isOver = false; }
+	
+	this.getEvents = function() {
+		return this._evtQueue.splice(0, this._evtQueue.length);
 	}
 	
 	this.handleMouse = function(type, evt) {
 		if (evt.touches) { evt = evt.touches[0] }
 		
-		var offset = Document.getOffset(),
+		var pt;
+		if (this._el && evt.target != this._el) { return; }
+		if ('offsetX' in evt) {
 			pt = {
-				x: evt.pageX - offset.x,
-				y: evt.pageY - offset.y
+				x: evt.offsetX,
+				y: evt.offsetY
+			}
+		} else {
+			var offsetX = this._el.offsetTop,
+				offsetY = this._el.offsetLeft,
+			pt = {
+				x: evt.pageX - offsetX,
+				y: evt.pageY - offsetY
 			};
+		}
+		
 		
 		switch(type) {
 			case 'input:scroll':
@@ -88,8 +74,10 @@ var InputHandler = Class(PubSub, function(supr) {
 					this._evtQueue.push(inputEvent);
 				}
 				
-				$.stopEvent(evt);
-				evt.returnValue = false;
+				if (this._isOver) {
+					$.stopEvent(evt);
+					evt.returnValue = false;
+				}
 				break;
 			default:
 				this._evtQueue.push(new InputEvent(type, pt));
