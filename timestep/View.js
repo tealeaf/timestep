@@ -15,6 +15,8 @@ import .ViewDebugger;
 var UID = 0;
 
 var View = exports = Class(lib.PubSub, function() {
+	
+	// Default parameters for 
 	var defaults = {
 		x: 0,
 		y: 0,
@@ -166,10 +168,10 @@ var View = exports = Class(lib.PubSub, function() {
 		}
 	}
 	
-	this.wrapTick = function(app, dt) {
-		this.tick(app, dt);
+	this.wrapTick = function(dt, app) {
+		this.tick(dt, app);
 		for (var i = 0, view; view = this._subViews[i]; ++i) {
-			view.wrapTick(app, dt);
+			view.wrapTick(dt, app);
 		}
 		
 		if (this._needsRepaint) {

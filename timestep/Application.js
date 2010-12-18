@@ -112,7 +112,7 @@ var Application = exports = Class(PubSub, function(supr) {
 	
 	this.__tick = function(dt) {
 		this.publish('tick', dt);
-		this._view.wrapTick(this, dt);
+		this._view.wrapTick(dt, this);
 		if (this._keyListener.clear) {
 			this._keyListener.clear();
 		}
