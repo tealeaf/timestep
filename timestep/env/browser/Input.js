@@ -8,26 +8,40 @@ exports = Class(function(supr) {
 	
 	this.init = function(targetCanvas) {
 		
-		// env browser canvas has a getElement function
-		var el = this._el = targetCanvas.getElement();
-		el.ondragstart = function() { return false; }
-		el.onselectstart = function() { return false; }
+		if (targetCanvas) {
+			this.setElement(targetCanvas.getElement());
+		}
 		
 		this._evtQueue = [];
 		
-		$.onEvent(el, 'mouseover', this, 'onMouseOver');
-		$.onEvent(el, 'mouseout', this, 'onMouseOut');
-		
-		$.onEvent(el, device.events.start, this, 'handleMouse', 'input:start');
 		$.onEvent(document, device.events.move, this, 'handleMouse', 'input:move');
 		$.onEvent(document, device.events.end, this, 'handleMouse', 'input:select');
 		$.onEvent(window, 'DOMMouseScroll', this, 'handleMouse', 'input:scroll'); // FF
 		$.onEvent(window, 'mousewheel', this, 'handleMouse', 'input:scroll'); // webkit
 		
-		$.onEvent(el, 'touchstart', bind(this, 'touchstart'));
-		$.onEvent(el, 'touchend', bind(this, 'touchend'));
-		$.onEvent(el, 'touchmove', bind(this, 'touchmove'));
-		$.onEvent(el, 'touchcancel', bind(this, 'touchcancel'));
+	}
+	
+	this.setElement = function(el) {
+		this._el = el;
+		
+		if (this._elEvents) {
+			for(var i = 0, detach; detach = this._elEvents[i]; ++i) {
+				detach();
+			}
+		}
+		
+		el.ondragstart = function() { return false; }
+		el.onselectstart = function() { return false; }
+		
+		this._elEvents = [
+			$.onEvent(el, 'mouseover', this, 'onMouseOver'),
+			$.onEvent(el, 'mouseout', this, 'onMouseOut'),
+			$.onEvent(el, device.events.start, this, 'handleMouse', 'input:start'),
+			$.onEvent(el, 'touchstart', bind(this, 'touchstart')),
+			$.onEvent(el, 'touchend', bind(this, 'touchend')),
+			$.onEvent(el, 'touchmove', bind(this, 'touchmove')),
+			$.onEvent(el, 'touchcancel', bind(this, 'touchcancel'))
+		];
 	}
 	
 	this.onMouseOver = function() { this._isOver = true; }

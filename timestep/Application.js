@@ -53,6 +53,7 @@ var Application = exports = Class(PubSub, function(supr) {
 		this._tickBuffer = 0;
 	}
 	
+	this.getInput = function() { return this._input; }
 	this.getCanvas = function() { return this._canvas; }
 	
 	this.getView = function() { return this._view; }
