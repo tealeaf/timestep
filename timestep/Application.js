@@ -51,6 +51,7 @@ var Application = exports = Class(PubSub, function(supr) {
 		this._FPSCount = 0;
 		this._FPS = 0;
 		this._tickBuffer = 0;
+		this._onTick = [];
 	}
 	
 	this.getInput = function() { return this._input; }
@@ -71,8 +72,15 @@ var Application = exports = Class(PubSub, function(supr) {
 		Timer.stop();
 	}
 	
+	this.doOnTick = function(cb) {
+		if (arguments.length > 1) { cb = bind.apply(this, arguments); }
+		this._onTick.push(cb);
+	}
+	
 	this._tick = function(dt) {
 		this._needsRepaint = false;
+		
+		for (var i = 0, cb; cb = this._onTick[i]; ++i) { this._onTick[i]; }
 		
 		var evts = this._input.getEvents();
 		for (var i = 0, evt; evt = evts[i]; ++i) {
