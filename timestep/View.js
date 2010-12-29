@@ -75,6 +75,7 @@ var View = exports = Class(lib.PubSub, function() {
 	}
 	
 	this.needsRepaint = function() { this._needsRepaint = true; }
+	this.needsSort = function() { this._needsRepaint = true; this._needsSort = true; }
 	
 	this.getSuperView = function() {
 		return this._superView;
@@ -87,13 +88,15 @@ var View = exports = Class(lib.PubSub, function() {
 		}
 		
 		this._subViews.push(view);
-		this.sort();
 		view.setSuperView(this);
-		this.needsRepaint();
+		this.needsSort();
 		return view;
 	}
 	
-	this.sort = function() { lib.Sortable.sort(this._subViews, function() { return this.style.zIndex; }); }
+	this.sort = function() {
+		this._needsSort = false;
+		lib.Sortable.sort(this._subViews, function() { return this.style.zIndex; });
+	}
 	
 	this.remove = function() {
 		if (this._superView) {
@@ -133,8 +136,10 @@ var View = exports = Class(lib.PubSub, function() {
 	this.setSuperView = function(view) {
 		this._superView = view;
 	}
-
+	
 	this.wrapRender = function(ctx, dt) {
+		if (this._needsSort) { this.sort(); }
+		
 		var s = this.style;
 		if (!s.visible) { return; }
 		
@@ -491,7 +496,7 @@ var View = exports = Class(lib.PubSub, function() {
 	
 	this.setZIndex = function(zIndex) {
 		this.style.zIndex = zIndex;
-		if (this._superView) { this._superView.sort(); }
+		if (this._superView) { this._superView.needsSort(); }
 		return this;
 	}
 	
