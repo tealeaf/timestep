@@ -43,7 +43,7 @@ var Group = Class(lib.PubSub, function(supr) {
 
 	this.add = function(id, q) {
 		this._anims[id] = q;
-		q.subscribe('Finish', this, 'onAnimationFinish');
+		q.subscribe('Finish', this, 'onAnimationFinish', id);
 	}
 	
 	this.isRunning = function() {
@@ -53,39 +53,42 @@ var Group = Class(lib.PubSub, function(supr) {
 		return false;
 	}
 	
-	this.onAnimationFinish = function() {
+	this.onAnimationFinish = function(id) {
+		// assume the animation must be finished
+		//   assert(this._anims[id].isRunning() === false)
+		delete this._anims[id];
+		
 		if (this.isRunning()) { return; }
 		
 		// if called from a Finish event, republish it
 		this.publish('Finish');
-		
-		this.checkPending();
+		this._dispatchPendingEvents();
 	}
 	
-	this.checkPending = function() {
+	this._dispatchPendingEvents = function() {
 		while (true) {
 			var isRunning = this.isRunning();
-			if (isRunning) { return false; }
+			if (isRunning) { return true; }
 			
 			if (this._pending[0]) {
 				var f = this._pending.shift();
 				f();
 			} else {
-				return true; // not running an animation and nothing pending
+				return false; // not running an animation and nothing pending
 			}
 		}
 	}
 	
-	this.schedule = function(f) {
-		if (this.checkPending()) {
+	this.schedule = this.runOnFinish = function(f) {
+		if (arguments.length > 1) { f = bind.apply(this, arguments); }
+		
+		if (!this._dispatchPendingEvents()) {
 			f();
 		} else {
 			this._pending.push(f);
 		}
 	}
 });
-
-exports.schedule = function(f, groupId) { exports.getGroup(groupId).schedule(f); }
 
 var groups = {
 	0: new Group()
@@ -127,14 +130,21 @@ var Queue = exports.Queue = Class(lib.PubSub, function() {
 	
 	this.start = function() { this._elapsed = 0; this.resume(); }
 	this.resume = function() {
-		if (this._isRunning) { return; }
+		if (this._isRunning || this._isFinished) { return; }
 		this._isRunning = true;
 		Application.get().subscribe('tick', this, 'onTick');
 	}
 	
-	this.stop = function() {
+	// Careful: pause will *not* fire the finish event, so anything pending the end of the
+	// animation will have to wait until the animation is resumed.  
+	this.pause = function() {
 		this._isRunning = false;
 		Application.get().unsubscribe('tick', this, 'onTick');
+	}
+	
+	this.finishNow = function() {
+		this.pause();
+		this.publish('Finish');
 	}
 	
 	this.wait = function(duration) {
@@ -147,10 +157,12 @@ var Queue = exports.Queue = Class(lib.PubSub, function() {
 		transition = transition || (this._isRunning ? exports.easeOut : exports.easeInOut);
 		var savedStyle = this.view.getStyle(),
 			newStyle = JS.shallowCopy(style);
-		this.commit();
+		var prevQueue = this._queue.slice(0);
+		this.commit(true);
 		this.resolveDeltas(newStyle, this.view.style);
 		this.view.setStyle(savedStyle);
 		this.then(newStyle, duration, transition);
+		return this;
 	}
 	
 	this.then = function(style, duration, transition) {
@@ -185,13 +197,13 @@ var Queue = exports.Queue = Class(lib.PubSub, function() {
 	
 	this.copyBaseStyle = function() { this._baseStyle = JS.shallowCopy(this.view.style); }
 	
-	this.commit = function() {
+	this.commit = function(willContinue) {
 		this._elapsed = 0;
 		for (var i = 0, p; p = this._queue[i]; ++i) {
 			this._elapsed += p.duration;
 		}
 		
-		this.next();
+		this.next(willContinue);
 		return this;
 	}
 	
@@ -200,7 +212,7 @@ var Queue = exports.Queue = Class(lib.PubSub, function() {
 		this.next();
 	}
 	
-	this.next = function() {
+	this.next = function(willContinue) {
 		var p,
 			target;
 		
@@ -243,8 +255,9 @@ var Queue = exports.Queue = Class(lib.PubSub, function() {
 			this._elapsed -= p.duration;
 		}
 		
-		this.stop();
-		this.publish('Finish');
+		if (!willContinue) {
+			this.finishNow();
+		}
 	}
 	
 	this._set = function(newStyle, t) {
