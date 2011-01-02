@@ -1,8 +1,10 @@
 jsio('import .canvas');
 jsio('import .Timer');
 jsio('import .StackView');
+jsio('import .View');
 jsio('import .device');
 jsio('import .input');
+jsio('import .InputEvent');
 jsio('import std.js as JS');
 jsio('import lib.PubSub as PubSub');
 jsio('import .KeyListener');
@@ -24,6 +26,7 @@ var Application = exports = Class(PubSub, function(supr) {
 			dtMinimum: 0,
 			alwaysRepaint: true,
 			repaintOnEvent: false,
+			continuousInputCheck: true,
 			el: $ ? $({}) : null // TODO: hack to create an element in the browser versus iphone
 		});
 		
@@ -86,8 +89,15 @@ var Application = exports = Class(PubSub, function(supr) {
 		for (var i = 0, evt; evt = evts[i]; ++i) {
 			evt.srcApp = this;
 			this._view.dispatchEvent(evt);
-			
+		}
+		
+		if (i > 0) {
 			if (this._opts.repaintOnEvent) { this.needsRepaint(); }
+		} else if (this._opts.continuousInputCheck) {
+			var prevMove = View._evtHistory['input:move'];
+			if (prevMove) {
+				this._view.dispatchEvent(new InputEvent(prevMove.type, prevMove.srcPt));
+			}
 		}
 		
 		if (this._opts.dtFixed) {
