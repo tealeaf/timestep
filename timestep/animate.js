@@ -159,7 +159,13 @@ var Queue = exports.Queue = Class(lib.PubSub, function() {
 			newStyle = JS.shallowCopy(style);
 		var prevQueue = this._queue.slice(0);
 		this.commit(true);
-		this.resolveDeltas(newStyle, this.view.style);
+		var postCommitStyle = this.view.style;
+		this.resolveDeltas(newStyle, postCommitStyle);
+		for (var i in postCommitStyle) {
+			if (postCommitStyle[i] != savedStyle[i] && !(i in newStyle)) {
+				newStyle[i] = postCommitStyle[i];
+			}
+		}
 		this.view.setStyle(savedStyle);
 		this.then(newStyle, duration, transition);
 		return this;
