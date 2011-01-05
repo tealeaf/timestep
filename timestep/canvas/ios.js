@@ -2,33 +2,6 @@ jsio('from ..canvas import BufferedCanvas');
 jsio('import ..device');
 jsio('import std.uri');
 
-Image = Class(function() {
-	this.init = function() {
-		this._src = "";
-		this.__defineSetter__('src', function(value) {
-			if (!value) {
-				logger.error('empty src set on an image!');
-				this.onerror();
-				return;
-			}
-			
-			value = String(std.uri.relativeTo(value, jsio.__env.getCwd()));
-			
-			this._src = value;
-			
-			var dim = NATIVE.gl.loadImage(value);
-			this.width = this.originalWidth = dim.width;
-			this.height = this.originalHeight = dim.height;
-			this.onload();
-			logger.log('IMAGE: ' + value, dim.width, dim.height);
-		});
-		
-		this.__defineGetter__('src', function() { return this._src; });
-	}
-	
-	this.onload = this.onerror = function() {}
-});
-
 var canvasSingleton = null;
 
 function getter(name) {
