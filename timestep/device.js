@@ -11,20 +11,56 @@ exports.get = function(module) {
 	return jsio(DYN_IMPORT_TIMESTEP_ENV, {dontExport: true});
 }
 
-exports.isTeaLeafIOS;
-if ((exports.isTeaLeafIOS = /TeaLeaf/.test(ua) && /iPhone OS/.test(ua))) {
+exports.isTeaLeafIOS = /TeaLeaf/.test(ua) && /iPhone OS/.test(ua);
+if (exports.isTeaLeafIOS) {
 	exports.name = 'tealeaf';
 	exports.width = navigator.width;
 	exports.height = navigator.height;
+	
+	Image = Class(function() {
+		jsio('import std.uri');
+		
+		this.init = function() {
+			this._src = "";
+			this.__defineSetter__('src', function(value) {
+				if (!value) {
+					logger.error('empty src set on an image!');
+					this.onerror();
+					return;
+				}
+				
+				value = String(std.uri.relativeTo(value, jsio.__env.getCwd()));
+
+				this._src = value;
+
+				logger.log(value);
+				var dim = NATIVE.gl.loadImage(value);
+				this.width = this.originalWidth = dim.width;
+				this.height = this.originalHeight = dim.height;
+				
+				this.onload();
+			});
+
+			this.__defineGetter__('src', function() { return this._src; });
+		}
+
+		this.onload = this.onerror = function() {}
+	});
+	
 } else {
 	exports.isSafari = /Safari/.test(ua);
 	if (/(iPod|iPhone|iPad)/i.test(ua)) {
 		exports.isIOS = true;
 		exports.isUIWebView = !exports.isSafari;
-		exports.height = window.innerHeight;
-		exports.width = window.innerWidth;
+		exports.height = 320; window.innerHeight;
+		exports.width = 240; window.innerWidth;
 		exports.clickEventName = 'touchstart';
-		alert('This application may run faster as a native app.');
+		exports.name = 'browser';
+		exports.events = {
+			start: 'touchstart',
+			move: 'touchmove',
+			end: 'touchend'
+		};
 	} else if (/Mobile Safari/.test(ua)) {
 		exports.isAndroid = true;
 		exports.height = window.screen.height;
