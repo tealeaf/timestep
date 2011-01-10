@@ -1,4 +1,5 @@
 jsio('import .device');
+jsio('import lib.PubSub');
 if (device.isTeaLeafIOS) {
 	exports = function() {
 		this.setEnabled = function() {}
