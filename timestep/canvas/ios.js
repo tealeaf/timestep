@@ -1,6 +1,7 @@
 jsio('from ..canvas import BufferedCanvas');
 jsio('import ..device');
 jsio('import std.uri');
+jsio('import ..RGBA');
 
 var canvasSingleton = null;
 
@@ -59,6 +60,11 @@ exports = Class(BufferedCanvas, function(supr) {
 		NATIVE.gl.setAlpha(alpha);
 	}
 	this.getGlobalAlpha = function() { return this._alpha; }
+	
+	this.fillRect = function(x, y, width, height) { 
+		var color = new RGBA(this.fillStyle);
+		NATIVE.gl.fillRect(x, y, width, height, color.r, color.g, color.b, color.a);
+	};
 	
 	
 });
