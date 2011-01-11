@@ -1,4 +1,5 @@
 jsio('import .device');
+jsio('import lib.PubSub');
 if (device.isTeaLeafIOS) {
 	exports = function() {
 		this.setEnabled = function() {}
@@ -11,8 +12,8 @@ jsio('from util.browser import $');
 jsio('import lib.Enum');
 jsio('import .Timer');
 
-var gListenerSingleton = null,
-	gCancelKeys = lib.Enum(32, 38, 40, 37, 39);
+var gListenerSingleton = null;
+
 
 exports = Class(function() {
 	this.init = function(el, events) {
@@ -21,10 +22,11 @@ exports = Class(function() {
 		
 		this._el = el = el || document;
 		this._events = [];
+		this._shortcuts = [];
 		this._isEnabled = true;
-		this._keyMap = {}
+		this._keyMap = {};
+		
 		$.onEvent(el, 'keydown', this, 'onKeyDown');
-		//$.onEvent(el, 'click', this, 'click');
 		$.onEvent(el, 'keypress', this, 'onKeyPress');
 		$.onEvent(el, 'keyup', this, 'onKeyUp');
 		$.onEvent(el, 'blur', this, 'clear');
@@ -36,23 +38,45 @@ exports = Class(function() {
 		this._events = [];
 	}
 	
+	this.captureShortcut = function(shortcut) {
+		this._shortcuts.push(shortcut);
+	}
+	
 	this.getPressed = function() { return this._keyMap; }
 
 	this.onKeyDown = function(e) {
 		
 		if (!this._isEnabled) { return; }
 		
-		// MUST cancel event if we're enabled to prevent browser default behaviors (e.g. scrolling)
-		$.stopEvent(e);
-		
-		// We already know that key is down; ignore repeat events.
-		if (e.keyCode in this._keyMap) { return; }
-		
 		var event = {
 			code: e.keyCode,
+			ctrl: e.ctrlKey,
+			shift: e.shiftKey,
+			alt: e.altKey,
+			meta: e.metaKey, // for mac keyboards
 			lifted: false,
 			dt: Timer.getTickProgress()
 		};
+		
+		if (event.ctrl || event.shift || event.alt || event.meta) {
+			var captured = false;
+			for (var i = 0, s; s = this._shortcuts[i]; ++i) {
+				if (s.compare(event)) {
+					s.publish('Down', event);
+					captured = true;
+				}
+			}
+			
+			if (captured) { $.stopEvent(e); }
+			return;
+		} else {
+			// MUST cancel event if we're enabled to prevent browser
+			// default behaviors (e.g. scrolling)
+			$.stopEvent(e);
+		}
+		
+		// We already know that key is down; ignore repeat events.
+		if (e.keyCode in this._keyMap) { return; }
 		
 		this._events.push(event);
 		this._keyMap[e.keyCode] = +new Date();
@@ -70,7 +94,7 @@ exports = Class(function() {
 		this._events.push(event);
 		$.stopEvent(e);
 	}
-
+	
 	this.onKeyPress = function(e) {
 		if (!this._isEnabled) { return; }
 		if (e.keyCode in gCancelKeys) {
@@ -132,3 +156,23 @@ JS.merge(exports, {
 	STOP: 178,
 	PLAY_PAUSE: 179
 });
+
+exports.Shortcut = Class(lib.PubSub, function() {
+	this.init = function(keyCode, ctrl, shift, alt, meta) {
+		this.ctrl = !!ctrl;
+		this.shift = !!shift;
+		this.alt = !!alt;
+		this.meta = !!meta;
+		this.code = !!keyCode;
+	}
+	
+	this.compare = function(shortcut) {
+		return this.ctrl == shortcut.ctrl 
+			&& this.alt == shortcut.alt
+			&& this.meta == shortcut.meta
+			&& this.shift == shortcut.shift
+			&& this.code == shortcut.code;
+	}
+});
+
+gCancelKeys = lib.Enum(exports.SPACE, exports.LEFT, exports.RIGHT, exports.UP, exports.DOWN);

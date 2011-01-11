@@ -3,6 +3,7 @@
 from .util import mergeDefaults;
 import std.js as JS;
 import lib.Callback;
+import timestep.canvas;
 
 ImageCache = {};
 function imageOnLoad(status, success) {
@@ -71,7 +72,6 @@ exports = Class(function() {
 			logger.error('Image failed to load:', this._url)
 			return;
 		}
-		
 		if (this._sourceImage.width == 0) { alert(0); debugger; }
 		
 		this._isReady = true;
@@ -87,4 +87,20 @@ exports = Class(function() {
 			ctx.drawImage(this._sourceImage, this._sourceX, this._sourceY, this._sourceW, this._sourceH, destX|0, destY|0, destW|0, destH|0);
 		} catch(e) {}
 	}
+	
+	this.getImageData = function() {
+		var canvas = document.createElement('canvas');
+		canvas.width = this.getWidth();
+		canvas.height = this.getHeight();
+		var ctx = canvas.getContext('2d');
+		
+		ctx.drawImage(this._sourceImage, 0, 0);
+		
+		var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+		
+		return imageData;
+	}
+	
+	this.setImageData = function(data) { }
+		
 });
