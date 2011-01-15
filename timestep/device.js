@@ -47,6 +47,45 @@ if (exports.isTeaLeafIOS) {
 		this.onload = this.onerror = function() {}
 	});
 	
+	
+	for (var familyName in NATIVE.gl.fonts) {
+
+		var fonts = NATIVE.gl.fonts[familyName];
+		var fontMap = NATIVE.gl.fonts[familyName] = {};
+
+		for (var i = 0, font; font = fonts[i]; ++i) {
+			if (/(bolditalic|boldoblique)/i.test(font)){
+				fontMap.bolditalic = fontMap.bold = fontMap.italic = font;
+				fonts.splice(i--,1);
+			}else if(/oblique/i.test(font)){
+				fontMap.italic = font;
+				fonts.splice(i--,1);
+			}
+		}
+		for (var i = 0, font; font = fonts[i]; ++i) {
+			if (/bold/i.test(font)){
+				fontMap.bold = font;
+				fonts.splice(i--,1);
+			} else if (/italic/i.test(font)) {
+				fontMap.italic = font;
+				fonts.splice(i--,1);
+			}
+		}
+
+		for (var i=0,font; font=fonts[i]; ++i) {
+			if(/light/i.test(font)){
+				for (var j=0,font; font=fonts[j]; ++j) {
+					if(/medium/i.test(font)){
+						fontMap.bold = font;
+					}
+				}
+			}
+		}
+	}
+
+	logger.log(JSON.stringify(NATIVE.gl.fonts));
+	
+	
 } else {
 	exports.isSafari = /Safari/.test(ua);
 	if (/(iPod|iPhone|iPad)/i.test(ua)) {

@@ -35,7 +35,7 @@ exports = Class(function() {
 			this.g = parseInt(match[2]) || 0;
 			this.b = parseInt(match[3]) || 0;
 			if (4 in match) {
-				var a = parseInt(match[4]);
+				var a = parseFloat(match[4]);
 				this.a = isNaN(a) ? 1 : a;
 			} else {
 				this.a = 1;

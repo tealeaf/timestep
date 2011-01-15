@@ -2,6 +2,7 @@ jsio('from ..canvas import BufferedCanvas');
 jsio('import ..device');
 jsio('import std.uri');
 jsio('import ..RGBA');
+jsio('import ..Font');
 
 var canvasSingleton = null;
 
@@ -26,6 +27,18 @@ function wrap(name) {
 
 
 exports = Class(BufferedCanvas, function(supr) {
+
+	var stateKeys = 
+		[
+			'font','stroke', 'patternQuality', 'fillPattern', 'strokePattern', 'globalAlpha', 
+			'textAlignment', 'textBaseline', 'shadow', 'shadowBlur', 'shadowOffsetX', 'shadowOffsetY'
+		];
+
+	this.init = function(){
+		supr(this,"init",arguments);
+		this._stack = [];
+	}
+
 	this._ctx = {}; // for legacy getters and setters
 	
 	this.show = function() {
@@ -41,10 +54,24 @@ exports = Class(BufferedCanvas, function(supr) {
 	}
 	
 	this.execSwap = function(operations) {}
-	
-	this.save = NATIVE.gl.push;
-	this.restore = NATIVE.gl.pop;
-	
+
+	this.save = function(){
+		NATIVE.gl.push();
+		var state = {};
+		for (var i = 0, key; key = stateKeys[i]; ++i){
+			state[key] = this[key];
+		}
+		this._stack.push(state);
+	}
+
+	this.restore = function(){
+		NATIVE.gl.pop();
+		var state = this._stack.pop();
+		for (var i = 0, key; key = stateKeys[i]; ++i){
+			this[key] = state[key];
+		}
+	}
+
 	this.drawImage = function(img, x, y, w, h, dx, dy, dw, dh) {
 		NATIVE.gl.drawImage(img.src, x, y, w, h, dx, dy, dw, dh);
 	}
@@ -66,8 +93,15 @@ exports = Class(BufferedCanvas, function(supr) {
 		NATIVE.gl.fillRect(x, y, width, height, color.r, color.g, color.b, color.a);
 	};
 	
-	
+	this.fillText = function(string, x, y) { 
+		var color = new RGBA(this.fillStyle);
+		var font = Font.parse(this.font);
+		var fontName = font.resolveAgainst(NATIVE.gl.fonts);
+		
+		NATIVE.gl.fillText(string, x, y, color.r, color.g, color.b, color.a, font.size, fontName);
+	};
 });
+
 
 /*
 exports.BufferedCanvas = Class(function() {

@@ -25,6 +25,7 @@ exports = function(opts) {
 	el.height = opts.height;
 	
 	var ctx = el.getContext('2d');
+	ctx.font = '11px Helvetica';
 	ctx.getElement = function() { return el; }
 	
 	ctx.reset = function() {}

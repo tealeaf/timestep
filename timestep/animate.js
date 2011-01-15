@@ -132,14 +132,14 @@ var Queue = exports.Queue = Class(lib.PubSub, function() {
 	this.resume = function() {
 		if (this._isRunning || this._isFinished) { return; }
 		this._isRunning = true;
-		Application.get().subscribe('tick', this, 'onTick');
+		Application.get().subscribe('Tick', this, 'onTick');
 	}
 	
 	// Careful: pause will *not* fire the finish event, so anything pending the end of the
 	// animation will have to wait until the animation is resumed.  
 	this.pause = function() {
 		this._isRunning = false;
-		Application.get().unsubscribe('tick', this, 'onTick');
+		Application.get().unsubscribe('Tick', this, 'onTick');
 	}
 	
 	this.finishNow = function() {

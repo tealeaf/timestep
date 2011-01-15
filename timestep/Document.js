@@ -9,7 +9,6 @@ import .canvas;
 var container = null;
 
 var SCALING = exports.SCALING = Enum('FIXED', 'RESIZE');
-
 // bgColor == webpage background
 // appColor == <canvas> background
 exports.init = function(bgColor, appColor) {

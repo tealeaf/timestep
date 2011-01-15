@@ -45,7 +45,8 @@ var Application = exports = Class(PubSub, function(supr) {
 			height: opts.height,
 			parent: this._el
 		});
-		
+		this._canvas.font = '11px Helvetica';
+
 		this._input = new input(this._canvas);
 		
 		this._keyListener = new KeyListener();
@@ -151,23 +152,15 @@ var Application = exports = Class(PubSub, function(supr) {
 			this._FPSLastRender = 0;
 		}
 		this._canvas.save();
-		this._canvas.beginPath();
-		this._canvas.moveTo(0,0);
-		this._canvas.lineTo(40,0);
-		this._canvas.lineTo(40,20);
-		this._canvas.lineTo(0,20);
-		this._canvas.lineTo(0,0);
-		this._canvas.setFillStyle('rgba(0,0,0,0.7)');
-		this._canvas.fill();
-		this._canvas.setStrokeStyle('rgba(255,255,255,0.7)');
-		this._canvas.setLineWidth(2.0);
-		this._canvas.stroke();
-		
-		this._canvas.beginPath();
-		this._canvas.setLineWidth(1.0);
-		this._canvas.setFillStyle('white');
-		this._canvas.setFont('12pt Arial');
-		this._canvas.setTextAlign('center');
+		this._canvas.fillStyle = 'rgba(0,0,0,0.7)';
+		this._canvas.strokeStyle = 'rgba(255,255,255,0.7)';
+		this._canvas.lineWidth = 2;
+		this._canvas.fillRect(0,0,40,20);
+		this._canvas.strokeRect(0,0,40,20);
+
+		this._canvas.fillStyle = 'rgba(255,255,255,1)';
+		this._canvas.font = '12pt Arial';
+		this._canvas.textAlign = 'center';
 		this._canvas.fillText(this._FPS.toString(), 20,15);
 
 		
