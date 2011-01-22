@@ -27,9 +27,12 @@ exports = Class(function() {
 		};
 	}
 	
-	var parser = /rgba?\(\s*([.0-9]+)\s*,\s*([.0-9]+)\s*,\s*([.0-9]+)\s*,?\s*([.0-9]+)?\s*\)/;
+
+	var rgbParser = /rgba?\(\s*([.0-9]+)\s*,\s*([.0-9]+)\s*,\s*([.0-9]+)\s*,?\s*([.0-9]+)?\s*\)/;
+	var poundParser = /#([0-9,a-f,A-F]{1,2})([0-9,a-f,A-F]{1,2})([0-9,a-f,A-F]{1,2})/;
+
 	this.parse = function(str) {
-		var match = str.match(parser);
+		var match = str.match(rgbParser);
 		if (match) {
 			this.r = parseInt(match[1]) || 0;
 			this.g = parseInt(match[2]) || 0;
@@ -40,8 +43,16 @@ exports = Class(function() {
 			} else {
 				this.a = 1;
 			}
+		} else {
+			var match = str.match(poundParser)
+			if (match){
+				this.r = parseInt(match[1], 16) || 0;
+				this.g = parseInt(match[2], 16) || 0;
+				this.b = parseInt(match[3], 16) || 0;
+				this.a = 1;
+			}
 		}
-	}
+	};
 	
 	this.toString = function() {
 		return 'rgba(' + this.r + ',' + this.g + ',' + this.b + ',' + this.a + ')';
